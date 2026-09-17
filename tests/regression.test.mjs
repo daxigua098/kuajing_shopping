@@ -4,6 +4,7 @@ import test from 'node:test'
 import { seedState } from '../src/data/seed.ts'
 import { statusAfterCloseDateChange } from '../src/utils/shop.ts'
 import { createShopExportFields, defaultShopExportFieldKeys } from '../src/utils/shopExport.ts'
+import { matchesShopDateRange } from '../src/utils/shopDateFilter.ts'
 
 test('seed exposes enough pending owner submissions for company queries', () => {
   const state = seedState()
@@ -70,4 +71,24 @@ test('shop export opens a field-selection modal', async () => {
   assert.ok(source.includes('@click="openExport"'))
   assert.ok(source.includes('title="选择店铺导出字段"'))
   assert.ok(source.includes('@click="resetExportFields"'))
+})
+
+test('shop date range filtering supports open and close events', () => {
+  const shop = { openDate: '2026-03-15', closeDate: '2026-08-20' }
+
+  assert.equal(matchesShopDateRange(shop, 'open', '2026-03-01', '2026-03-31'), true)
+  assert.equal(matchesShopDateRange(shop, 'open', '2026-04-01', '2026-04-30'), false)
+  assert.equal(matchesShopDateRange(shop, 'close', '2026-08-01', '2026-08-31'), true)
+  assert.equal(matchesShopDateRange(shop, 'close', '2026-09-01', '2026-09-30'), false)
+  assert.equal(matchesShopDateRange(shop, 'all', '2026-08-01', '2026-08-31'), true)
+  assert.equal(matchesShopDateRange({ openDate: '2026-01-01', closeDate: null }, 'close', '', ''), false)
+})
+
+test('shop page exposes date range filters', async () => {
+  const source = await readFile(new URL('../src/views/ShopsView.vue', import.meta.url), 'utf8')
+
+  assert.ok(source.includes('v-model="dateFieldFilter"'))
+  assert.ok(source.includes('v-model="dateFrom"'))
+  assert.ok(source.includes('v-model="dateTo"'))
+  assert.ok(source.includes('@click="clearDateFilter"'))
 })

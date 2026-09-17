@@ -9,6 +9,7 @@ import type { Owner, SettlementMode, Shop, ShopStatus } from '@/types'
 import { maskAccount, money } from '@/utils/format'
 import { downloadRows } from '@/utils/export'
 import { statusAfterCloseDateChange } from '@/utils/shop'
+import { matchesShopDateRange, type ShopDateFilterMode } from '@/utils/shopDateFilter'
 import { createShopExportFields, type ShopExportFieldKey } from '@/utils/shopExport'
 
 const route = useRoute()
@@ -17,6 +18,9 @@ watch(() => route.query.q, value => { search.value = String(value || '') })
 const statusFilter = ref('all')
 const companyFilter = ref('all')
 const modeFilter = ref('all')
+const dateFieldFilter = ref<ShopDateFilterMode>('all')
+const dateFrom = ref('')
+const dateTo = ref('')
 const modalOpen = ref(false)
 const detailOpen = ref(false)
 const editingId = ref<string|null>(null)
@@ -31,7 +35,7 @@ const selectedTemplate=computed(()=>visibleCompanySettlementTemplates.value.find
 const filtered = computed(() => visibleShops.value.filter(shop => {
   const keyword=search.value.trim().toLowerCase()
   const owner=visibleOwners.value.find(item=>item.id===shop.ownerId)
-  return (!keyword || [shop.code,shop.name,shop.region,ownerName(shop.ownerId),agentName(shop.agentId),owner?.icNumber||'',owner?.bankAccount||''].some(value=>value.toLowerCase().includes(keyword))) && (statusFilter.value==='all'||shop.status===statusFilter.value) && (companyFilter.value==='all'||shop.companyId===companyFilter.value) && (modeFilter.value==='all'||(currentUser.value?.role==='company'?companyConfigFor(shop.id)?.mode===modeFilter.value:shop.mode===modeFilter.value))
+  return (!keyword || [shop.code,shop.name,shop.region,ownerName(shop.ownerId),agentName(shop.agentId),owner?.icNumber||'',owner?.bankAccount||''].some(value=>value.toLowerCase().includes(keyword))) && (statusFilter.value==='all'||shop.status===statusFilter.value) && (companyFilter.value==='all'||shop.companyId===companyFilter.value) && (modeFilter.value==='all'||(currentUser.value?.role==='company'?companyConfigFor(shop.id)?.mode===modeFilter.value:shop.mode===modeFilter.value)) && matchesShopDateRange(shop,dateFieldFilter.value,dateFrom.value,dateTo.value)
 }))
 const statusText:Record<ShopStatus,string>={operating:'经营中',paused:'暂停',closed:'已关店',preparing:'筹备中'}
 const typeName=(id:string)=>shopTypeName(id)
@@ -75,6 +79,7 @@ function exportShopValue(shop:Shop,key:ShopExportFieldKey):string|number {
   if(key==='openProof')return (shop.openProof||owner?.shopOpenProof)?'已上传':'未上传'
   return (shop.closeProof||owner?.shopCloseProof)?'已上传':'未上传'
 }
+function clearDateFilter(){ dateFieldFilter.value='all'; dateFrom.value=''; dateTo.value='' }
 function openExport(){ exportOpen.value=true }
 function selectAllExportFields(){ exportFields.forEach(field=>field.selected=true) }
 function resetExportFields(){ exportFields.forEach(field=>field.selected=field.default) }
@@ -92,6 +97,11 @@ function exportShops(){
       <select v-model="companyFilter" class="select" style="width:160px"><option value="all">全部公司</option><option v-for="company in visibleCompanies" :key="company.id" :value="company.id">{{ company.name }}</option></select>
       <select v-model="statusFilter" class="select" style="width:125px"><option value="all">全部状态</option><option value="operating">经营中</option><option value="paused">暂停</option><option value="closed">已关店</option></select>
       <select v-model="modeFilter" class="select" style="width:130px"><option value="all">全部模式</option><template v-if="currentUser?.role==='company'"><option value="one_time">一次性</option><option value="monthly">按月</option></template><template v-else><option value="monthly">按月</option><option value="head_fee">砍头</option></template></select>
+      <select v-model="dateFieldFilter" class="select" style="width:130px"><option value="all">全部日期</option><option value="open">开店日期</option><option value="close">封店日期</option></select>
+      <input v-model="dateFrom" class="input" type="date" style="width:145px" title="开始日期"/>
+      <span class="hint">至</span>
+      <input v-model="dateTo" class="input" type="date" style="width:145px" title="结束日期"/>
+      <button v-if="dateFrom || dateTo || dateFieldFilter!=='all'" class="btn ghost small" @click="clearDateFilter">清除时间</button>
       <span class="spacer"/>
       <button class="btn secondary" @click="openExport"><Icon name="download" :size="15"/>导出店铺表</button>
       <button v-if="can('manageShops')" class="btn primary" @click="openCreate()"><Icon name="plus" :size="15"/>新增店铺</button>
