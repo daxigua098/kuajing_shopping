@@ -109,6 +109,7 @@ svg { flex: 0 0 auto; }
 ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--muted) 28%, transparent); border-radius: 99px; }
 ::-webkit-scrollbar-track { background: transparent; }
 
+.i18n-root { min-height: 100%; }
 .app-shell { min-height: 100vh; display: flex; background: var(--page); color: var(--ink); }
 .sidebar {
   position: fixed; inset: 0 auto 0 0; z-index: 30; width: 244px; display: flex; flex-direction: column;

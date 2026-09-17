@@ -216,3 +216,18 @@ test('monthly settlement export defaults and shop status are visible', async () 
   assert.ok(settlement.includes('选择月度核算导出字段'))
   assert.ok(settlement.includes('默认导出店铺编号、店铺名称、人头名字、开店日期和状态'))
 })
+
+test('language selection updates rendered interface text', async () => {
+  const app = await readFile(new URL('../src/App.vue', import.meta.url), 'utf8')
+  const main = await readFile(new URL('../src/main.ts', import.meta.url), 'utf8')
+  const i18n = await readFile(new URL('../src/utils/i18n.ts', import.meta.url), 'utf8')
+  const settings = await readFile(new URL('../src/views/SettingsView.vue', import.meta.url), 'utf8')
+
+  assert.ok(app.includes('v-i18n'))
+  assert.ok(app.includes('state.language'))
+  assert.ok(main.includes("app.directive('i18n'"))
+  assert.ok(i18n.includes("'经营工作台': ['Dashboard'"))
+  assert.ok(i18n.includes("'新增店铺': ['Add Shop'"))
+  assert.ok(i18n.includes("translateAttributes"))
+  assert.ok(settings.includes('applyLanguage(language.id)'))
+})
