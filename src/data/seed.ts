@@ -141,6 +141,28 @@ owners.push({
   id: 'o28', name: 'RAJESH KUMAR', phone: '0192224403', email: 'rajeshkumar@example.my', agentId: 'a15', companyId: '', loginEmail: '', icNumber: '910505-10-7788', bankAccount: '02950007788', bankCardNumber: '4678 5150 2635 1003', bankCvv: '443', bankExpiry: '10/34', bankHolder: 'RAJESH KUMAR', bankName: 'RHB Bank', idCardFront: '', idCardBack: '', bankCardPhoto: '', bankCardBack: '', shopOpenProof: '', shopCloseProof: '', remark: '等待公司审核的开店人头。', isInvalid: false, status: 'active', createdAt: '2026-09-16',
 })
 
+const pendingOwnerProfiles = [
+  { id: 'o29', name: 'TAN MEI FANG', phone: '0123456789', email: 'tanmeifang@example.my', agentId: 'a2', icNumber: '920418-10-2211', bankAccount: '02950002211', bankCardNumber: '4678 5150 2635 1004', bankCvv: '514', bankExpiry: '12/34', bankName: 'Public Bank', remark: '等待兰卡威优选审核 Shopee 店铺。', createdAt: '2026-09-17' },
+  { id: 'o30', name: 'MUHAMMAD IRFAN', phone: '0134567890', email: 'muhammadirfan@example.my', agentId: 'a3', icNumber: '940726-14-5522', bankAccount: '02950005522', bankCardNumber: '4678 5150 2635 1005', bankCvv: '625', bankExpiry: '01/35', bankName: 'Bank Islam', remark: '等待兰卡威优选审核 Temu 店铺。', createdAt: '2026-09-17' },
+  { id: 'o31', name: 'GRACE WONG', phone: '0145678901', email: 'gracewong@example.my', agentId: 'a11', icNumber: '960903-10-6633', bankAccount: '02950006633', bankCardNumber: '4678 5150 2635 1006', bankCvv: '736', bankExpiry: '02/35', bankName: 'Hong Leong Bank', remark: '等待海风跨境审核 Lazada 店铺。', createdAt: '2026-09-17' },
+  { id: 'o32', name: 'NUR AMIRA', phone: '0156789012', email: 'nuramira@example.my', agentId: 'a4', icNumber: '990115-01-7744', bankAccount: '02950007744', bankCardNumber: '4678 5150 2635 1007', bankCvv: '847', bankExpiry: '03/35', bankName: 'CIMB Bank', remark: '等待兰卡威优选审核 Shopee 店铺。', createdAt: '2026-09-17' },
+  { id: 'o33', name: 'VU HOANG NAM', phone: '0167890123', email: 'vuhoangnam@example.vn', agentId: 'a13', icNumber: '930228-13-8855', bankAccount: '02950008855', bankCardNumber: '4678 5150 2635 1008', bankCvv: '958', bankExpiry: '04/35', bankName: 'OCBC Bank', remark: '等待南洋云店审核 Temu 店铺。', createdAt: '2026-09-17' },
+  { id: 'o34', name: 'KARTHIK RAJ', phone: '0178901234', email: 'karthikraj@example.my', agentId: 'a15', icNumber: '950612-10-9966', bankAccount: '02950009966', bankCardNumber: '4678 5150 2635 1009', bankCvv: '169', bankExpiry: '05/35', bankName: 'RHB Bank', remark: '等待海风跨境审核 TikTok 店铺。', createdAt: '2026-09-17' },
+]
+owners.push(...pendingOwnerProfiles.map((profile): Owner => ({
+  ...profile,
+  companyId: '',
+  loginEmail: '',
+  bankHolder: profile.name,
+  idCardFront: '',
+  idCardBack: '',
+  bankCardPhoto: '',
+  bankCardBack: '',
+  shopOpenProof: '',
+  shopCloseProof: '',
+  isInvalid: false,
+  status: 'active',
+})))
 const ownerSubmissions: OwnerSubmission[] = shops.map((shop, i) => ({
   id: 'os' + (i + 1),
   ownerId: shop.ownerId,
@@ -157,6 +179,12 @@ ownerSubmissions.push(
   { id: 'os-p1', ownerId: 'o26', fromAgentId: 'a11', companyId: 'c1', shopTypeId: 'c1-st1', status: 'pending', submittedAt: '2026-09-15 10:20', reviewedAt: null, reviewedBy: null, remark: '等待兰卡威优选审核' },
   { id: 'os-p2', ownerId: 'o27', fromAgentId: 'a13', companyId: 'c1', shopTypeId: 'c1-st3', status: 'pending', submittedAt: '2026-09-16 09:40', reviewedAt: null, reviewedBy: null, remark: '等待兰卡威优选审核 TikTok 店铺' },
   { id: 'os-p3', ownerId: 'o28', fromAgentId: 'a15', companyId: 'c2', shopTypeId: 'c2-st2', status: 'pending', submittedAt: '2026-09-16 15:15', reviewedAt: null, reviewedBy: null, remark: '等待海风跨境审核 Shopee 店铺' },
+  { id: 'os-p4', ownerId: 'o29', fromAgentId: 'a2', companyId: 'c1', shopTypeId: 'c1-st2', status: 'pending', submittedAt: '2026-09-17 09:10', reviewedAt: null, reviewedBy: null, remark: '等待兰卡威优选审核 Shopee 店铺' },
+  { id: 'os-p5', ownerId: 'o30', fromAgentId: 'a3', companyId: 'c1', shopTypeId: 'c1-st4', status: 'pending', submittedAt: '2026-09-17 09:35', reviewedAt: null, reviewedBy: null, remark: '等待兰卡威优选审核 Temu 店铺' },
+  { id: 'os-p6', ownerId: 'o31', fromAgentId: 'a11', companyId: 'c2', shopTypeId: 'c2-st1', status: 'pending', submittedAt: '2026-09-17 10:05', reviewedAt: null, reviewedBy: null, remark: '等待海风跨境审核 Lazada 店铺' },
+  { id: 'os-p7', ownerId: 'o32', fromAgentId: 'a4', companyId: 'c1', shopTypeId: 'c1-st2', status: 'pending', submittedAt: '2026-09-17 10:40', reviewedAt: null, reviewedBy: null, remark: '等待兰卡威优选审核 Shopee 店铺' },
+  { id: 'os-p8', ownerId: 'o33', fromAgentId: 'a13', companyId: 'c3', shopTypeId: 'c3-st4', status: 'pending', submittedAt: '2026-09-17 11:15', reviewedAt: null, reviewedBy: null, remark: '等待南洋云店审核 Temu 店铺' },
+  { id: 'os-p9', ownerId: 'o34', fromAgentId: 'a15', companyId: 'c2', shopTypeId: 'c2-st3', status: 'pending', submittedAt: '2026-09-17 11:45', reviewedAt: null, reviewedBy: null, remark: '等待海风跨境审核 TikTok 店铺' },
 )
 
 const companySettlementTemplates: CompanySettlementTemplate[] = companies.flatMap((company, companyIndex) => shopTypes.flatMap(type => [

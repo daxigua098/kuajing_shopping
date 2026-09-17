@@ -3,7 +3,7 @@ import { seedState, users } from '@/data/seed'
 import type { Agent, AppState, AuditLog, Company, CompanySettlementConfig, CompanySettlementTemplate, CompanyShopType, DistributionRule, OpenTask, Owner, OwnerBusinessStatus, OwnerSubmission, OwnerSubmissionStatus, SettlementBatch, SettlementDetail, Shop, ShopExpense, ShopType, ThemeId, UserAccount } from '@/types'
 import { calculateRent } from '@/utils/settlement'
 
-const STORAGE_KEY = 'fenflow-state-v9'
+const STORAGE_KEY = 'fenflow-state-v10'
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 
 const load = (): AppState => {
