@@ -157,6 +157,8 @@ test('image fields remain optional in every image-bearing export', async () => {
   assert.ok(owners.includes("key:'idCardFront'"))
   assert.ok(owners.includes("key:'bankCardPhoto'"))
   assert.ok(owners.includes("key:'shopCloseProof'"))
+  assert.ok(!owners.includes('图片数量'))
+  assert.ok(!owners.includes('attachmentCount'))
   assert.equal(shopFields.find(field => field.key === 'openProof')?.selected, false)
   assert.equal(shopFields.find(field => field.key === 'closeProof')?.selected, false)
   assert.ok(expenses.includes("label:'费用凭证图片',selected:false"))

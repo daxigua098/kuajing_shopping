@@ -15,7 +15,7 @@ const search = ref(String(route.query.q || ''))
 const filterAgent = ref('all')
 const statusFilter = ref<'all' | OwnerBusinessStatus | 'pending_review'>('all')
 const exportOpen = ref(false)
-type ExportFieldKey = 'name' | 'icNumber' | 'bankCard' | 'shop' | 'phone' | 'email' | 'businessStatus' | 'agent' | 'company' | 'shopType' | 'bankName' | 'bankAccount' | 'bankCvv' | 'bankExpiry' | 'attachmentCount' | 'idCardFront' | 'idCardBack' | 'bankCardPhoto' | 'bankCardBack' | 'shopOpenProof' | 'shopCloseProof' | 'remark'
+type ExportFieldKey = 'name' | 'icNumber' | 'bankCard' | 'shop' | 'phone' | 'email' | 'businessStatus' | 'agent' | 'company' | 'shopType' | 'bankName' | 'bankAccount' | 'bankCvv' | 'bankExpiry' | 'idCardFront' | 'idCardBack' | 'bankCardPhoto' | 'bankCardBack' | 'shopOpenProof' | 'shopCloseProof' | 'remark'
 const exportFields = reactive<{ key: ExportFieldKey; label: string; selected: boolean }[]>([
   { key:'name', label:'人头姓名', selected:true },
   { key:'icNumber', label:'IC 卡号', selected:true },
@@ -31,7 +31,6 @@ const exportFields = reactive<{ key: ExportFieldKey; label: string; selected: bo
   { key:'bankAccount', label:'银行账号 ACC', selected:false },
   { key:'bankCvv', label:'CVV', selected:false },
   { key:'bankExpiry', label:'有效期', selected:false },
-  { key:'attachmentCount', label:'图片数量', selected:false },
   { key:'idCardFront', label:'身份证正面图片', selected:false },
   { key:'idCardBack', label:'身份证反面图片', selected:false },
   { key:'bankCardPhoto', label:'银行卡正面图片', selected:false },
@@ -176,7 +175,6 @@ function exportValue(owner: Owner, key: ExportFieldKey) {
   if (key === 'bankAccount') return canViewFullSensitive.value ? owner.bankAccount || '' : maskAccount(owner.bankAccount || '')
   if (key === 'bankCvv') return canViewFullSensitive.value ? owner.bankCvv || '' : '已隐藏'
   if (key === 'bankExpiry') return owner.bankExpiry || ''
-  if (key === 'attachmentCount') return mediaItems(owner).filter(item => item.url).length
   if (key === 'idCardFront') return owner.idCardFront || ''
   if (key === 'idCardBack') return owner.idCardBack || ''
   if (key === 'bankCardPhoto') return owner.bankCardPhoto || ''
