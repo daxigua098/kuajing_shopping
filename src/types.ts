@@ -254,10 +254,20 @@ export interface AuditLog {
   detail: string
 }
 
+export interface SystemSettings {
+  systemName: string
+  logoUrl: string
+  defaultLanguage: Language
+  defaultTheme: ThemeId
+  updatedAt: string
+  updatedBy: string
+}
+
 export interface AppState {
   currentUserId: string | null
   language: Language
   theme: ThemeId
+  systemSettings: SystemSettings
   companies: Company[]
   agents: Agent[]
   owners: Owner[]

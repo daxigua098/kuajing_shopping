@@ -28,6 +28,13 @@ const dictionary: Record<string, Translation> = {
   '报表与导出': ['Reports & Exports', 'Laporan & Eksport'],
   '操作日志': ['Audit Log', 'Log Audit'],
   '系统设置': ['System Settings', 'Tetapan Sistem'],
+  '系统品牌与默认设置': ['System Brand & Defaults', 'Jenama & Lalai Sistem'],
+  '系统名称': ['System Name', 'Nama Sistem'],
+  '全站默认登录语言': ['Default Login Language', 'Bahasa Log Masuk Lalai'],
+  '全站默认视觉主题': ['Default Visual Theme', 'Tema Visual Lalai'],
+  '系统 Logo': ['System Logo', 'Logo Sistem'],
+  '保存系统设置': ['Save System Settings', 'Simpan Tetapan Sistem'],
+  '登录页与侧边栏品牌预览': ['Login and sidebar brand preview', 'Pratonton jenama log masuk dan bar sisi'],
   '掌握店铺健康、结算进度与待办事项': ['Monitor shop health, settlement progress and tasks', 'Pantau kesihatan kedai, kemajuan penyelesaian dan tugasan'],
   '维护合作公司、编码规则与业务区域': ['Manage partner companies, code rules and regions', 'Urus syarikat rakan, peraturan kod dan wilayah'],
   '管理代理关系、团队收益与数据范围': ['Manage agent relationships, team earnings and data scope', 'Urus hubungan ejen, pendapatan pasukan dan skop data'],
@@ -301,7 +308,8 @@ const extendedDictionary: Record<'th' | 'vi', Record<string, string>> = {
     '语言与时区': 'ภาษาและเขตเวลา', '视觉主题': 'ธีมภาพ', '当前账号与权限': 'บัญชีและสิทธิ์ปัจจุบัน', '演示数据与备份': 'ข้อมูลตัวอย่างและการสำรองข้อมูล',
     '安全登录': 'เข้าสู่ระบบอย่างปลอดภัย', '登录账号': 'บัญชีเข้าสู่ระบบ', '登录密码': 'รหัสผ่าน', '测试账号': 'บัญชีตัวอย่าง',
     '平台管理员': 'ผู้ดูแลแพลตฟอร์ม', '公司负责人': 'ผู้จัดการบริษัท', '顶级代理': 'ตัวแทนระดับสูง', '子代理': 'ตัวแทนย่อย',
-    '退出登录': 'ออกจากระบบ', '切换演示角色': 'สลับบทบาทตัวอย่าง', '没有数据': 'ไม่มีข้อมูล'
+    '退出登录': 'ออกจากระบบ', '切换演示角色': 'สลับบทบาทตัวอย่าง', '没有数据': 'ไม่มีข้อมูล',
+    '系统品牌与默认设置': 'แบรนด์และค่าเริ่มต้นระบบ', '系统名称': 'ชื่อระบบ', '全站默认登录语言': 'ภาษาเข้าสู่ระบบเริ่มต้น', '全站默认视觉主题': 'ธีมเริ่มต้นของระบบ', '系统 Logo': 'โลโก้ระบบ', '保存系统设置': 'บันทึกการตั้งค่าระบบ',
   },
   vi: {
     '业务总览': 'Tổng quan', '组织与档案': 'Tổ chức & Hồ sơ', '业务运营': 'Vận hành', '财务结算': 'Tài chính & Thanh toán', '系统': 'Hệ thống',
@@ -324,7 +332,8 @@ const extendedDictionary: Record<'th' | 'vi', Record<string, string>> = {
     '银行卡号': 'Số thẻ ngân hàng', '有效期': 'Có hiệu lực đến', '用途': 'Mục đích', '语言与时区': 'Ngôn ngữ & múi giờ', '视觉主题': 'Chủ đề giao diện',
     '当前账号与权限': 'Tài khoản & quyền hiện tại', '演示数据与备份': 'Dữ liệu demo & sao lưu', '安全登录': 'Đăng nhập an toàn', '登录账号': 'Tài khoản đăng nhập',
     '登录密码': 'Mật khẩu', '测试账号': 'Tài khoản demo', '平台管理员': 'Quản trị nền tảng', '公司负责人': 'Quản lý công ty', '顶级代理': 'Đại lý cấp cao', '子代理': 'Đại lý con',
-    '退出登录': 'Đăng xuất', '切换演示角色': 'Đổi vai trò demo', '没有数据': 'Không có dữ liệu'
+    '退出登录': 'Đăng xuất', '切换演示角色': 'Đổi vai trò demo', '没有数据': 'Không có dữ liệu',
+    '系统品牌与默认设置': 'Thương hiệu & mặc định hệ thống', '系统名称': 'Tên hệ thống', '全站默认登录语言': 'Ngôn ngữ đăng nhập mặc định', '全站默认视觉主题': 'Chủ đề mặc định hệ thống', '系统 Logo': 'Logo hệ thống', '保存系统设置': 'Lưu cài đặt hệ thống',
   }
 }
 

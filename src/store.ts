@@ -1,6 +1,6 @@
 import { computed, reactive, watch } from 'vue'
 import { seedState, users } from '@/data/seed'
-import type { Agent, AppState, AuditLog, Company, CompanySettlementConfig, CompanySettlementTemplate, CompanyShopType, ProtectionPeriodTemplate, DistributionRule, OpenTask, Owner, OwnerBusinessStatus, OwnerSubmission, OwnerSubmissionStatus, SettlementBatch, SettlementDetail, Shop, ShopExpense, ShopType, ThemeId, UserAccount } from '@/types'
+import type { Agent, AppState, AuditLog, Company, CompanySettlementConfig, CompanySettlementTemplate, CompanyShopType, ProtectionPeriodTemplate, DistributionRule, OpenTask, Owner, OwnerBusinessStatus, OwnerSubmission, OwnerSubmissionStatus, SettlementBatch, SettlementDetail, Shop, ShopExpense, ShopType, SystemSettings, ThemeId, UserAccount } from '@/types'
 import { calculateRent } from '@/utils/settlement'
 
 const STORAGE_KEY = 'fenflow-state-v12'
@@ -15,6 +15,7 @@ const load = (): AppState => {
     return {
       ...fresh,
       ...parsed,
+      systemSettings: { ...fresh.systemSettings, ...(parsed.systemSettings || {}) },
       companies: parsed.companies || fresh.companies,
       agents: parsed.agents || fresh.agents,
       owners: parsed.owners || fresh.owners,
@@ -228,7 +229,9 @@ export function authenticate(username: string, password: string) {
 
 export function login(user: UserAccount) {
   state.currentUserId = user.id
-  state.language = user.language
+  state.language = state.systemSettings.defaultLanguage
+  state.theme = state.systemSettings.defaultTheme
+  document.documentElement.dataset.theme = String(state.theme)
   addAudit('登录系统', user.name, user.roleLabel + '登录平台')
 }
 
@@ -242,6 +245,24 @@ export function setTheme(theme: ThemeId) {
   localStorage.setItem('fenflow-theme', String(theme))
 }
 
+export function saveSystemSettings(settings: SystemSettings) {
+  const actor = currentUser.value
+  if (!actor || actor.role !== 'platform') return { ok: false, reason: '只有平台管理员可以修改系统设置' }
+  const systemName = settings.systemName.trim()
+  if (!systemName) return { ok: false, reason: '请填写系统名称' }
+  state.systemSettings = clone({
+    ...settings,
+    systemName,
+    updatedAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
+    updatedBy: actor.name,
+  })
+  state.language = state.systemSettings.defaultLanguage
+  state.theme = state.systemSettings.defaultTheme
+  document.documentElement.dataset.theme = String(state.theme)
+  document.title = systemName + ' · 跨境开店结算平台'
+  addAudit('修改系统设置', systemName, '默认语言 ' + state.systemSettings.defaultLanguage + ' · 默认主题 ' + state.systemSettings.defaultTheme)
+  return { ok: true, reason: '' }
+}
 export function setLanguage(language: AppState['language']) {
   state.language = language
   if (currentUser.value) currentUser.value.language = language

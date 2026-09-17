@@ -50,8 +50,8 @@ function chooseTheme(id: ThemeId) {
   <main class="login-page" :class="'theme-' + state.theme">
     <section class="login-panel">
       <div class="login-brand">
-        <div class="brand-mark"><span>F</span></div>
-        <div><strong>FenFlow</strong><small>跨境开店业务分发与代理分账平台</small></div>
+        <div class="brand-mark"><img v-if="state.systemSettings.logoUrl" :src="state.systemSettings.logoUrl" alt="Logo"/><span v-else>{{ state.systemSettings.systemName.slice(0, 1) || 'F' }}</span></div>
+        <div><strong>{{ state.systemSettings.systemName }}</strong><small>跨境开店业务分发与代理分账平台</small></div>
       </div>
       <div class="login-copy">
         <div class="eyebrow">Secure account login</div>
@@ -92,7 +92,7 @@ function chooseTheme(id: ThemeId) {
         </div>
       </div>
       <footer class="login-footer">
-        <span>© {{ year }} FenFlow SaaS</span>
+        <span>© {{ year }} {{ state.systemSettings.systemName }} SaaS</span>
         <span>马来西亚 · 新加坡 · 泰国 · 越南</span>
       </footer>
     </section>

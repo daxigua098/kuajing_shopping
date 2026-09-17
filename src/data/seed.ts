@@ -1,4 +1,4 @@
-import type { AppState, AuditLog, Agent, Company, CompanySettlementConfig, CompanySettlementTemplate, CompanyShopType, ProtectionPeriodTemplate, DistributionRule, OpenTask, Owner, OwnerSubmission, SettlementBatch, SettlementDetail, Shop, ShopExpense, ShopType, UserAccount } from '@/types'
+import type { AppState, AuditLog, SystemSettings, Agent, Company, CompanySettlementConfig, CompanySettlementTemplate, CompanyShopType, ProtectionPeriodTemplate, DistributionRule, OpenTask, Owner, OwnerSubmission, SettlementBatch, SettlementDetail, Shop, ShopExpense, ShopType, UserAccount } from '@/types'
 
 export const users: UserAccount[] = [
   { id: 'u1', name: '林泽宇', username: 'admin', demoPassword: 'Admin@123456', role: 'platform', roleLabel: '平台管理员', initials: '林', language: 'zh' },
@@ -346,10 +346,20 @@ const auditLogs: AuditLog[] = [
   { id: 'l4', action: '确认杂费', target: '店铺 MY-LKW-1003', operator: '周雅雯', role: '公司负责人', createdAt: '2026-09-05 09:42:18', detail: '金额 RM120.00，凭证已核验' },
 ]
 
+const systemSettings: SystemSettings = {
+  systemName: 'FenFlow',
+  logoUrl: '',
+  defaultLanguage: 'zh',
+  defaultTheme: 2,
+  updatedAt: '2026-09-01 09:00',
+  updatedBy: '平台管理员',
+}
+
 export const seedState = (): AppState => ({
   currentUserId: null,
-  language: 'zh',
-  theme: 2,
+  language: systemSettings.defaultLanguage,
+  theme: systemSettings.defaultTheme,
+  systemSettings,
   companies,
   agents,
   owners,

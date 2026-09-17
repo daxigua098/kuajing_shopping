@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, reactive } from 'vue'
 import Icon from '@/components/Icon.vue'
-import { currentUser, resetDemoData, setLanguage, setTheme, state } from '@/store'
-import type { Language, ThemeId } from '@/types'
+import MediaField from '@/components/MediaField.vue'
+import { currentUser, resetDemoData, saveSystemSettings, setLanguage, setTheme, state } from '@/store'
+import type { Language, SystemSettings, ThemeId } from '@/types'
 import { downloadJson } from '@/utils/export'
 
 const themes:{id:ThemeId;name:string;desc:string;colors:string[]}[]=[
@@ -13,12 +14,27 @@ const themes:{id:ThemeId;name:string;desc:string;colors:string[]}[]=[
 ]
 const languages:{id:Language;name:string;tag:string}[]=[{id:'zh',name:'简体中文',tag:'ZH'},{id:'en',name:'English',tag:'EN'},{id:'ms',name:'Bahasa Melayu',tag:'MS'},{id:'th',name:'ไทย',tag:'TH'},{id:'vi',name:'Tiếng Việt',tag:'VI'}]
 const storageSize=computed(()=>Math.round(JSON.stringify(state).length/1024))
+const systemForm=reactive<SystemSettings>({...state.systemSettings})
 function applyTheme(id:ThemeId){setTheme(id);document.documentElement.dataset.theme=String(id)}
 function applyLanguage(id:Language){setLanguage(id)}
+function saveSystemConfig(){const result=saveSystemSettings({...systemForm});if(!result.ok){window.alert(result.reason);return};Object.assign(systemForm,state.systemSettings)}
 function reset(){if(window.confirm('确定恢复全部演示数据吗？当前浏览器中的新增、编辑和结算操作将丢失。'))resetDemoData()}
 </script>
 <template>
   <div>
+    <section v-if="currentUser?.role==='platform'" class="card card-pad" style="margin-bottom:15px">
+      <div class="card-head"><div><h3>系统品牌与默认设置</h3><p>系统名称、Logo 以及全站登录后的默认语言和视觉主题。</p></div><Icon name="settings" :size="18"/></div>
+      <div class="form-grid three">
+        <div class="field"><label>系统名称 <b>*</b></label><input v-model="systemForm.systemName" class="input" placeholder="例如：FenFlow"/></div>
+        <div class="field"><label>全站默认登录语言</label><select v-model="systemForm.defaultLanguage" class="select"><option v-for="language in languages" :key="language.id" :value="language.id">{{ language.name }}</option></select></div>
+        <div class="field"><label>全站默认视觉主题</label><select v-model.number="systemForm.defaultTheme" class="select"><option v-for="theme in themes" :key="theme.id" :value="theme.id">{{ theme.name }}</option></select></div>
+        <div class="field full"><label>系统 Logo</label><MediaField v-model="systemForm.logoUrl" label="系统 Logo" upload-only hint="选填；上传后显示在登录页和左侧菜单品牌区。"/></div>
+      </div>
+      <div class="row between center" style="margin-top:14px;gap:12px;flex-wrap:wrap">
+        <div class="brand-row" style="padding:0"><div class="brand-mark"><img v-if="systemForm.logoUrl" :src="systemForm.logoUrl" alt="Logo"/><span v-else>{{ systemForm.systemName.slice(0,1) || 'F' }}</span></div><div><strong>{{ systemForm.systemName || 'FenFlow' }}</strong><small>登录页与侧边栏品牌预览</small></div></div>
+        <button class="btn primary" @click="saveSystemConfig"><Icon name="check" :size="15"/>保存系统设置</button>
+      </div>
+    </section>
     <section class="grid-2">
       <article class="card card-pad"><div class="card-head"><div><h3>视觉主题</h3><p>四套 UI 方向均已内置，可以随时切换而不影响业务数据。</p></div><Icon name="sparkles" :size="18"/></div><div class="grid-2" style="grid-template-columns:repeat(2,1fr);margin:0"><button v-for="theme in themes" :key="theme.id" class="card card-pad" style="text-align:left" :style="{borderColor:state.theme===theme.id?'var(--primary)':'var(--line)'}" @click="applyTheme(theme.id)"><div class="row" style="gap:6px"><i v-for="color in theme.colors" :key="color" style="width:24px;height:24px;border-radius:8px;display:block" :style="{background:color}"/></div><div class="row between center" style="margin-top:13px"><strong style="font-size: calc(12px + var(--font-boost))">{{theme.name}}</strong><Icon v-if="state.theme===theme.id" name="check" :size="16"/></div><p class="hint" style="margin:6px 0 0">{{theme.desc}}</p></button></div></article>
       <article class="card card-pad"><div class="card-head"><div><h3>语言与时区</h3><p>账号级语言偏好；金额和编号不翻译。</p></div><Icon name="globe" :size="18"/></div><div class="role-grid" style="margin:0"><button v-for="language in languages" :key="language.id" class="role-card" :style="{borderColor:state.language===language.id?'var(--primary)':'var(--line)'}" @click="applyLanguage(language.id)"><span class="avatar role-platform">{{language.tag}}</span><span style="flex:1"><strong>{{language.name}}</strong><small>界面语言 · 账号级偏好</small></span><Icon v-if="state.language===language.id" name="check" :size="16"/></button></div><div class="detail-list" style="margin-top:20px"><div class="detail-item"><label>业务时区</label><strong>Asia/Kuala_Lumpur (UTC+8)</strong></div><div class="detail-item"><label>金额精度</label><strong>DECIMAL(20,4)</strong></div><div class="detail-item"><label>默认币种</label><strong>MYR · 马来西亚林吉特</strong></div><div class="detail-item"><label>结算日</label><strong>每月 10 日核算上月</strong></div></div></article>

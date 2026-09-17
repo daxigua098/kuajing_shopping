@@ -235,3 +235,25 @@ test('language selection updates rendered interface text', async () => {
   assert.ok(i18n.includes("'经营工作台': 'แดชบอร์ด'"))
   assert.ok(i18n.includes("'经营工作台': 'Bảng điều khiển'"))
 })
+
+test('platform system settings control brand and login defaults', async () => {
+  const state = seedState()
+  assert.equal(state.systemSettings.systemName, 'FenFlow')
+  assert.equal(state.systemSettings.defaultLanguage, 'zh')
+  assert.equal(state.systemSettings.defaultTheme, 2)
+
+  const settings = await readFile(new URL('../src/views/SettingsView.vue', import.meta.url), 'utf8')
+  const shell = await readFile(new URL('../src/components/AppShell.vue', import.meta.url), 'utf8')
+  const login = await readFile(new URL('../src/views/LoginView.vue', import.meta.url), 'utf8')
+  const store = await readFile(new URL('../src/store.ts', import.meta.url), 'utf8')
+
+  assert.ok(settings.includes('系统品牌与默认设置'))
+  assert.ok(settings.includes('saveSystemSettings'))
+  assert.ok(settings.includes('systemForm.logoUrl'))
+  assert.ok(shell.includes('state.systemSettings.systemName'))
+  assert.ok(shell.includes('state.systemSettings.logoUrl'))
+  assert.ok(login.includes('state.systemSettings.systemName'))
+  assert.ok(store.includes('只有平台管理员可以修改系统设置'))
+  assert.ok(store.includes('state.systemSettings.defaultLanguage'))
+  assert.ok(store.includes('state.systemSettings.defaultTheme'))
+})

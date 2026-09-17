@@ -39,7 +39,7 @@ const nav = [
   ] },
 ]
 const filteredNav = computed(() => nav.map(group => ({ ...group, items: group.items.filter(item => !item.permission || can(item.permission)) })).filter(group => group.items.length))
-const pageTitle = computed(() => String(route.meta.title || 'FenFlow'))
+const pageTitle = computed(() => String(route.meta.title || state.systemSettings.systemName))
 const pageSubtitle = computed(() => String(route.meta.subtitle || ''))
 const today = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' }).format(new Date())
 const search = ref('')
@@ -56,7 +56,9 @@ function switchUser(id: string) {
   const selected = users.find(u => u.id === id)
   if (!selected) return
   state.currentUserId = id
-  state.language = selected.language
+  state.language = state.systemSettings.defaultLanguage
+  state.theme = state.systemSettings.defaultTheme
+  document.documentElement.dataset.theme = String(state.theme)
   userOpen.value = false
   router.push({ name: 'dashboard' })
 }
@@ -71,8 +73,8 @@ function submitSearch() {
     <div v-if="mobileOpen" class="mobile-scrim" @click="mobileOpen=false" />
     <aside class="sidebar" :class="{ open: mobileOpen }">
       <div class="brand-row">
-        <div class="brand-mark"><span>F</span></div>
-        <div><strong>FenFlow</strong><small>跨境开店结算平台</small></div>
+        <div class="brand-mark"><img v-if="state.systemSettings.logoUrl" :src="state.systemSettings.logoUrl" alt="Logo"/><span v-else>{{ state.systemSettings.systemName.slice(0, 1) || 'F' }}</span></div>
+        <div><strong>{{ state.systemSettings.systemName }}</strong><small>跨境开店结算平台</small></div>
         <button class="icon-btn mobile-only" @click="mobileOpen=false"><Icon name="x" /></button>
       </div>
       <div class="workspace-pill">
