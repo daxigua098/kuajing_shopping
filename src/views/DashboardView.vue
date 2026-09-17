@@ -33,7 +33,7 @@ function quickExport() {
     <section class="dashboard-hero">
       <div class="row between center" style="position:relative;z-index:2;gap:24px;flex-wrap:wrap">
         <div>
-          <div class="eyebrow" style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.8">2026 年 9 月 17 日 · 当前结算月 2026-08</div>
+          <div class="eyebrow" style="font-size: calc(10px + var(--font-boost));letter-spacing:.12em;text-transform:uppercase;opacity:.8">2026 年 9 月 17 日 · 当前结算月 2026-08</div>
           <h2>{{ title }}</h2>
           <p v-if="isSubAgent">只管理自己的人头资料，查看未开店、已开店和挂店状态；提交人头后由顶级代理分配公司。</p>
           <p v-else-if="unresolvedExpenses.length">有 {{ unresolvedExpenses.length }} 笔垫付杂费待确认；确认后会合并进入本月公司应结。</p>
@@ -91,7 +91,7 @@ function quickExport() {
           <polyline :points="points" class="line"/>
           <polyline points="0,94 42,88 84,92 126,78 168,84 210,72 252,80 294,68 336,74 378,58 420,63 462,45 504,53" class="line2"/>
         </svg>
-        <div class="row between tiny muted" style="font-size:9px"><span>3月</span><span>4月</span><span>5月</span><span>6月</span><span>7月</span><span>8月</span></div>
+        <div class="row between tiny muted" style="font-size: calc(9px + var(--font-boost))"><span>3月</span><span>4月</span><span>5月</span><span>6月</span><span>7月</span><span>8月</span></div>
       </article>
       <article class="card card-pad">
         <div class="card-head"><div><h3>店铺健康度</h3><p>按当前数据权限范围计算</p></div><span class="badge success">稳定</span></div>
@@ -159,7 +159,7 @@ function quickExport() {
       <article v-if="!isSubAgent" class="card card-pad">
         <div class="card-head"><div><h3>代理收益排行</h3><p>演示数据按可视代理范围统计</p></div><button class="btn ghost small" @click="router.push({name:'agents'})">代理树</button></div>
         <div v-for="(agent,index) in topAgents" :key="agent.id" style="margin:12px 0">
-          <div class="row between center" style="font-size:10px"><span><b style="display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;background:var(--surface-2);margin-right:7px">{{ index+1 }}</b>{{ agent.name }}</span><span class="amount">{{ money(agent.profit) }}</span></div>
+          <div class="row between center" style="font-size: calc(10px + var(--font-boost))"><span><b style="display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;background:var(--surface-2);margin-right:7px">{{ index+1 }}</b>{{ agent.name }}</span><span class="amount">{{ money(agent.profit) }}</span></div>
           <div class="progress-track" style="height:6px;margin-top:7px"><i :style="{width:(90-index*13)+'%'}"/></div>
           <div class="secondary-line" style="margin-top:4px">{{ agent.shops }} 家店铺 · 层级 {{ agent.level }}</div>
         </div>

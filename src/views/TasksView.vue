@@ -38,10 +38,10 @@ function isMine(task:OpenTask){ return task.claimedBy===currentUser.value?.agent
     <div class="grid-3">
       <article v-for="task in tasks" :key="task.id" class="card card-pad" style="display:flex;flex-direction:column;gap:14px">
         <div class="row between center"><span class="badge" :class="task.status==='completed'?'success':task.status==='claimed'?'info':'warning'">{{ statusText[task.status] }}</span><span class="hint">{{ task.createdAt }}</span></div>
-        <div><h3 style="font-size:14px;margin:0 0 6px">{{ task.title }}</h3><p class="hint" style="margin:0">{{ companyName(task.companyId) }} · {{ task.region }}</p></div>
+        <div><h3 style="font-size: calc(14px + var(--font-boost));margin:0 0 6px">{{ task.title }}</h3><p class="hint" style="margin:0">{{ companyName(task.companyId) }} · {{ task.region }}</p></div>
         <div class="stats-grid" style="grid-template-columns:repeat(2,1fr);margin:0;gap:8px">
-          <div class="stat-card" style="min-height:80px;padding:11px;box-shadow:none"><div class="stat-label">目标数量</div><div class="stat-value" style="font-size:20px">{{ task.quantity }}</div></div>
-          <div class="stat-card" style="min-height:80px;padding:11px;box-shadow:none"><div class="stat-label">单店奖励</div><div class="stat-value" style="font-size:18px">{{ money(task.reward) }}</div></div>
+          <div class="stat-card" style="min-height:80px;padding:11px;box-shadow:none"><div class="stat-label">目标数量</div><div class="stat-value" style="font-size: calc(20px + var(--font-boost))">{{ task.quantity }}</div></div>
+          <div class="stat-card" style="min-height:80px;padding:11px;box-shadow:none"><div class="stat-label">单店奖励</div><div class="stat-value" style="font-size: calc(18px + var(--font-boost))">{{ money(task.reward) }}</div></div>
         </div>
         <div><div class="row between hint"><span>开店进度</span><b>{{ task.completed }} / {{ task.quantity }}</b></div><div class="progress-track" style="margin-top:7px"><i :style="{width:task.completed/task.quantity*100+'%'}"/></div></div>
         <div class="row between center" style="margin-top:auto"><span class="hint">截止 {{ task.deadline }}</span><div class="row" style="gap:6px"><button v-if="can('publishTask')" class="btn secondary small" @click="openEdit(task)"><Icon name="edit" :size="13"/>编辑</button><button v-if="task.status==='open' && currentUser?.role!=='company' && currentUser?.role!=='platform'" class="btn primary small" @click="claimTask(task.id)">承接任务</button><button v-if="isMine(task)" class="btn primary small" @click="openProgress(task)">更新进度</button></div></div>

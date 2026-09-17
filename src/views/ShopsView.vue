@@ -110,7 +110,7 @@ function exportShops(){
       <article class="stat-card"><div class="stat-top"><span class="stat-label">可管理店铺</span><span class="stat-icon"><Icon name="store" :size="16"/></span></div><div class="stat-value">{{ visibleShops.length }}</div><div class="stat-foot">按角色数据范围过滤</div></article>
       <article class="stat-card"><div class="stat-top"><span class="stat-label">当前存活</span><span class="stat-icon"><Icon name="check" :size="16"/></span></div><div class="stat-value">{{ visibleShops.filter(s=>s.status==='operating').length }}</div><div class="stat-foot">经营中的店铺</div></article>
       <article class="stat-card"><div class="stat-top"><span class="stat-label">按月模式</span><span class="stat-icon"><Icon name="history" :size="16"/></span></div><div class="stat-value">{{ visibleShops.filter(s=>s.mode==='monthly').length }}</div><div class="stat-foot">每月按存活结算</div></article>
-      <article class="stat-card"><div class="stat-top"><span class="stat-label">本月店租池</span><span class="stat-icon"><Icon name="money" :size="16"/></span></div><div class="stat-value" style="font-size:21px">{{ money(currentUser?.role==='company' ? visibleCompanySettlementConfigs.reduce((sum,c)=>sum+c.amount,0) : visibleShops.filter(s=>s.status!=='closed').reduce((sum,s)=>sum+s.monthlyRent,0)) }}</div><div class="stat-foot">{{ currentUser?.role==='company'?'公司结算配置金额':'仅供参考，以核算批次为准' }}</div></article>
+      <article class="stat-card"><div class="stat-top"><span class="stat-label">本月店租池</span><span class="stat-icon"><Icon name="money" :size="16"/></span></div><div class="stat-value" style="font-size: calc(21px + var(--font-boost))">{{ money(currentUser?.role==='company' ? visibleCompanySettlementConfigs.reduce((sum,c)=>sum+c.amount,0) : visibleShops.filter(s=>s.status!=='closed').reduce((sum,s)=>sum+s.monthlyRent,0)) }}</div><div class="stat-foot">{{ currentUser?.role==='company'?'公司结算配置金额':'仅供参考，以核算批次为准' }}</div></article>
     </section>
     <div class="table-wrap">
       <table class="data-table">
@@ -153,7 +153,7 @@ function exportShops(){
 
     <Modal :open="detailOpen" title="店铺完整档案" width="920px" @close="detailOpen=false">
       <div v-if="selected">
-        <div class="row between center"><div><div class="badge info no-dot">{{ selected.code }}</div><h2 style="font-size:20px;margin:9px 0 4px">{{ selected.name }}</h2><span class="hint">{{ selected.region }} · {{ typeName(selected.shopTypeId) }}</span></div><span class="badge" :class="selected.status==='operating'?'success':'warning'">{{ statusText[selected.status] }}</span></div>
+        <div class="row between center"><div><div class="badge info no-dot">{{ selected.code }}</div><h2 style="font-size: calc(20px + var(--font-boost));margin:9px 0 4px">{{ selected.name }}</h2><span class="hint">{{ selected.region }} · {{ typeName(selected.shopTypeId) }}</span></div><span class="badge" :class="selected.status==='operating'?'success':'warning'">{{ statusText[selected.status] }}</span></div>
         <div class="detail-list" style="margin-top:20px">
           <div class="detail-item"><label>人头名字</label><strong>{{ ownerForShop(selected)?.name || ownerName(selected.ownerId) }}</strong></div>
           <div class="detail-item"><label>IC 卡号</label><strong>{{ ownerForShop(selected)?.icNumber || '未填写' }}</strong></div>

@@ -136,7 +136,7 @@ function exportAgents() {
         </div>
       </article>
       <aside v-if="selected" class="card card-pad">
-        <div class="row between center"><div class="person-cell"><span class="avatar role-top_agent" style="width:44px;height:44px;font-size:15px">{{ selected.name.slice(0,1) }}</span><span><strong style="font-size:14px">{{ selected.name }}</strong><small>{{ selected.agentType==='top'?'顶级代理':'子代理' }} · 层级 {{ selected.level }}</small></span></div><span class="badge success">正常</span></div>
+        <div class="row between center"><div class="person-cell"><span class="avatar role-top_agent" style="width:44px;height:44px;font-size: calc(15px + var(--font-boost))">{{ selected.name.slice(0,1) }}</span><span><strong style="font-size: calc(14px + var(--font-boost))">{{ selected.name }}</strong><small>{{ selected.agentType==='top'?'顶级代理':'子代理' }} · 层级 {{ selected.level }}</small></span></div><span class="badge success">正常</span></div>
         <div class="detail-list" style="margin-top:20px">
           <div class="detail-item"><label>代理 ID</label><strong>{{ selected.id }}</strong></div>
           <div class="detail-item"><label>上级代理</label><strong>{{ selected.parentId ? visibleAgents.find(a=>a.id===selected.parentId)?.name : '平台直签' }}</strong></div>
@@ -144,11 +144,11 @@ function exportAgents() {
           <div class="detail-item"><label>联系人</label><strong>{{ selected.contact }}</strong></div>
         </div>
         <div class="stats-grid" style="grid-template-columns:repeat(2,1fr);margin-top:18px">
-          <div class="stat-card" style="min-height:90px;padding:12px"><div class="stat-label">开店总点数</div><div class="stat-value" style="font-size:20px">{{ metricsFor(selected.id).points }}</div><div class="stat-foot">本代理及全部下级</div></div>
-          <div class="stat-card" style="min-height:90px;padding:12px"><div class="stat-label">有效提交人头</div><div class="stat-value" style="font-size:20px">{{ metricsFor(selected.id).submitted }}</div><div class="stat-foot">待审核 + 已通过，按人头去重</div></div>
-          <div class="stat-card" style="min-height:90px;padding:12px"><div class="stat-label">存活店数</div><div class="stat-value" style="font-size:20px;color:var(--success)">{{ metricsFor(selected.id).alive }}</div><div class="stat-foot">经营中、暂停、筹备中</div></div>
-          <div class="stat-card" style="min-height:90px;padding:12px"><div class="stat-label">挂店 / 死店数</div><div class="stat-value" style="font-size:20px;color:var(--danger)">{{ metricsFor(selected.id).dead }}</div><div class="stat-foot">已关店或标记死店</div></div>
-          <div class="stat-card" style="min-height:90px;padding:12px"><div class="stat-label">未开店人数</div><div class="stat-value" style="font-size:20px;color:var(--warning)">{{ metricsFor(selected.id).unopened }}</div><div class="stat-foot">当前类型下尚未开店的人头</div></div>
+          <div class="stat-card" style="min-height:90px;padding:12px"><div class="stat-label">开店总点数</div><div class="stat-value" style="font-size: calc(20px + var(--font-boost))">{{ metricsFor(selected.id).points }}</div><div class="stat-foot">本代理及全部下级</div></div>
+          <div class="stat-card" style="min-height:90px;padding:12px"><div class="stat-label">有效提交人头</div><div class="stat-value" style="font-size: calc(20px + var(--font-boost))">{{ metricsFor(selected.id).submitted }}</div><div class="stat-foot">待审核 + 已通过，按人头去重</div></div>
+          <div class="stat-card" style="min-height:90px;padding:12px"><div class="stat-label">存活店数</div><div class="stat-value" style="font-size: calc(20px + var(--font-boost));color:var(--success)">{{ metricsFor(selected.id).alive }}</div><div class="stat-foot">经营中、暂停、筹备中</div></div>
+          <div class="stat-card" style="min-height:90px;padding:12px"><div class="stat-label">挂店 / 死店数</div><div class="stat-value" style="font-size: calc(20px + var(--font-boost));color:var(--danger)">{{ metricsFor(selected.id).dead }}</div><div class="stat-foot">已关店或标记死店</div></div>
+          <div class="stat-card" style="min-height:90px;padding:12px"><div class="stat-label">未开店人数</div><div class="stat-value" style="font-size: calc(20px + var(--font-boost));color:var(--warning)">{{ metricsFor(selected.id).unopened }}</div><div class="stat-foot">当前类型下尚未开店的人头</div></div>
         </div>
         <div class="card-head" style="margin:18px 0 10px"><div><h3>按店铺类型分类统计</h3><p>同一统计口径，分别展示不同店铺平台的数据。</p></div></div>
         <div class="table-wrap" style="box-shadow:none;max-height:260px">

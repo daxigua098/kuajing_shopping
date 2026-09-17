@@ -41,7 +41,7 @@ function exportReport(){
 </script>
 <template>
   <div>
-    <section class="grid-3" style="margin-bottom:15px"><button v-for="report in reports" :key="report.id" class="card card-pad" style="text-align:left" :style="{borderColor:type===report.id?'var(--primary)':'var(--line)'}" @click="type=report.id"><div class="row between center"><span class="stat-icon"><Icon :name="report.icon" :size="17"/></span><Icon name="arrowRight" :size="15"/></div><h3 style="margin:13px 0 4px;font-size:13px">{{ report.title }}</h3><p class="hint" style="margin:0">{{ report.desc }}</p></button></section>
+    <section class="grid-3" style="margin-bottom:15px"><button v-for="report in reports" :key="report.id" class="card card-pad" style="text-align:left" :style="{borderColor:type===report.id?'var(--primary)':'var(--line)'}" @click="type=report.id"><div class="row between center"><span class="stat-icon"><Icon :name="report.icon" :size="17"/></span><Icon name="arrowRight" :size="15"/></div><h3 style="margin:13px 0 4px;font-size: calc(13px + var(--font-boost))">{{ report.title }}</h3><p class="hint" style="margin:0">{{ report.desc }}</p></button></section>
     <article class="card card-pad" style="margin-bottom:15px">
       <div class="card-head"><div><h3>筛选与导出选项</h3><p>正式环境的大数据导出会转为异步任务，当前演示直接在浏览器生成文件。</p></div><button class="btn primary" @click="exportReport"><Icon name="download" :size="15"/>生成并下载</button></div>
       <div class="form-grid three">

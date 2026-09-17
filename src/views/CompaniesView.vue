@@ -67,7 +67,7 @@ function exportCompanies() {
           <tr v-for="company in filtered" :key="company.id">
             <td><div class="person-cell"><span class="avatar role-company">{{ company.name.slice(0,1) }}</span><span><strong>{{ company.name }}</strong><small>{{ company.id.toUpperCase() }} · {{ company.contact }}</small></span></div></td>
             <td>{{ company.region }}</td>
-            <td><code style="font-size:9px;color:var(--primary)">{{ company.shopCodeRule }}</code></td>
+            <td><code style="font-size: calc(9px + var(--font-boost));color:var(--primary)">{{ company.shopCodeRule }}</code></td>
             <td><div>{{ companyStats(company.id).agents }} 代理 · {{ companyStats(company.id).owners }} 人头</div><div class="secondary-line">{{ companyStats(company.id).shops }} 家店铺</div></td>
             <td class="amount">RM {{ companyStats(company.id).rent.toLocaleString() }}</td>
             <td><span class="badge" :class="company.status==='active'?'success':company.status==='pending'?'warning':'neutral'">{{ company.status==='active'?'正常合作':company.status==='pending'?'待审核':'已停用' }}</span></td>

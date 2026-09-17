@@ -92,3 +92,13 @@ test('shop page exposes date range filters', async () => {
   assert.ok(source.includes('v-model="dateTo"'))
   assert.ok(source.includes('@click="clearDateFilter"'))
 })
+
+test('global typography applies the configured font boost', async () => {
+  const styles = await readFile(new URL('../src/styles.css', import.meta.url), 'utf8')
+  const shops = await readFile(new URL('../src/views/ShopsView.vue', import.meta.url), 'utf8')
+
+  assert.ok(styles.includes('--font-boost: 2px'))
+  assert.ok(styles.includes('font-size: calc(10px + var(--font-boost))'))
+  assert.ok(styles.includes('font-size: calc(11px + var(--font-boost))'))
+  assert.ok(shops.includes('font-size: calc(21px + var(--font-boost))'))
+})
