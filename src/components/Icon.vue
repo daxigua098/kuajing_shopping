@@ -14,6 +14,7 @@ const paths: Record<string, string> = {
   send: '<path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/>',
   users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
   store: '<path d="M3 9l2-6h14l2 6M5 13v8h14v-8M5 9a4 4 0 0 0 8 0 4 4 0 0 0 8 0 4 4 0 0 1-8 0 4 4 0 0 1-8 0z"/>',
+  card: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>',
   wallet: '<path d="M3 6h16v14H3zM3 10h18M16 15h1"/>',
   chart: '<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>',
   file: '<path d="M6 2h8l4 4v16H6zM14 2v5h5M9 13h6M9 17h6"/>',

@@ -104,6 +104,8 @@ const shops: Shop[] = Array.from({ length: 24 }, (_, i) => {
     taskId: i < 10 ? 't' + ((i % 3) + 1) : null,
     mode: i % 5 === 0 ? 'head_fee' : 'monthly',
     monthlyRent: type.defaultRent + (i % 4) * 20,
+    trafficCardNumber: i % 5 === 0 ? '' : 'MYTC-' + String(8801000 + i),
+    trafficCardExpiryDate: i % 5 === 0 ? null : '2026-' + String(9 + (i % 3)).padStart(2, '0') + '-' + String(5 + (i % 20)).padStart(2, '0'),
     createdAt: '2026-01-05',
   }
 })

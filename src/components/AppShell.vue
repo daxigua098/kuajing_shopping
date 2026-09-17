@@ -19,6 +19,7 @@ const nav = [
     { name: 'submissions', label: '人头提交', icon: 'send' },
     { name: 'shop-types', label: '店铺类型', icon: 'grid', permission: 'manageShopTypes' },
     { name: 'shops', label: '店铺档案', icon: 'store' },
+    { name: 'traffic-cards', label: '流量卡管理', icon: 'card', permission: 'manageTrafficCards' },
   ] },
   { group: '业务运营', items: [
     { name: 'tasks', label: '开店任务', icon: 'briefcase', permission: 'viewTasks' },

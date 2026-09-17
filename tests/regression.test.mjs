@@ -5,6 +5,7 @@ import { seedState } from '../src/data/seed.ts'
 import { statusAfterCloseDateChange } from '../src/utils/shop.ts'
 import { createShopExportFields, defaultShopExportFieldKeys } from '../src/utils/shopExport.ts'
 import { matchesShopDateRange } from '../src/utils/shopDateFilter.ts'
+import { daysUntilTrafficExpiry, trafficCardStatus } from '../src/utils/trafficCard.ts'
 
 test('seed exposes enough pending owner submissions for company queries', () => {
   const state = seedState()
@@ -101,4 +102,41 @@ test('global typography applies the configured font boost', async () => {
   assert.ok(styles.includes('font-size: calc(10px + var(--font-boost))'))
   assert.ok(styles.includes('font-size: calc(11px + var(--font-boost))'))
   assert.ok(shops.includes('font-size: calc(21px + var(--font-boost))'))
+})
+
+test('traffic cards are unique and statuses are calculated', () => {
+  const state = seedState()
+  const cardNumbers = state.shops.map(shop => shop.trafficCardNumber).filter(Boolean)
+  assert.equal(new Set(cardNumbers).size, cardNumbers.length)
+  assert.ok(cardNumbers.length > 0)
+
+  assert.equal(trafficCardStatus({ trafficCardNumber: '', trafficCardExpiryDate: null }, '2026-09-18'), 'unconfigured')
+  assert.equal(trafficCardStatus({ trafficCardNumber: 'MYTC-1', trafficCardExpiryDate: null }, '2026-09-18'), 'missing_expiry')
+  assert.equal(trafficCardStatus({ trafficCardNumber: 'MYTC-1', trafficCardExpiryDate: '2026-09-17' }, '2026-09-18'), 'expired')
+  assert.equal(trafficCardStatus({ trafficCardNumber: 'MYTC-1', trafficCardExpiryDate: '2026-09-21' }, '2026-09-18'), 'due_soon')
+  assert.equal(trafficCardStatus({ trafficCardNumber: 'MYTC-1', trafficCardExpiryDate: '2026-10-20' }, '2026-09-18'), 'active')
+  assert.equal(daysUntilTrafficExpiry('2026-09-20', '2026-09-18'), 2)
+})
+
+test('traffic card management is wired into navigation and shops', async () => {
+  const view = await readFile(new URL('../src/views/TrafficCardsView.vue', import.meta.url), 'utf8')
+  const router = await readFile(new URL('../src/router.ts', import.meta.url), 'utf8')
+  const shell = await readFile(new URL('../src/components/AppShell.vue', import.meta.url), 'utf8')
+  const shops = await readFile(new URL('../src/views/ShopsView.vue', import.meta.url), 'utf8')
+
+  assert.ok(view.includes('流量卡管理'))
+  assert.ok(view.includes('trafficCardNumber'))
+  assert.ok(view.includes('trafficCardExpiryDate'))
+  assert.ok(router.includes("name: 'traffic-cards'"))
+  assert.ok(shell.includes('流量卡管理'))
+  assert.ok(shops.includes('流量卡号码'))
+})
+
+test('company review can open complete owner audit details', async () => {
+  const view = await readFile(new URL('../src/views/SubmissionsView.vue', import.meta.url), 'utf8')
+
+  assert.ok(view.includes('openOwnerDetail'))
+  assert.ok(view.includes('人头详细审核资料'))
+  assert.ok(view.includes('ownerMediaItems'))
+  assert.ok(view.includes('审核提示'))
 })

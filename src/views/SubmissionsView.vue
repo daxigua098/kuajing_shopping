@@ -6,6 +6,7 @@ import MediaField from '@/components/MediaField.vue'
 import Modal from '@/components/Modal.vue'
 import { agentName, assignOwnerSubmissionToCompany, cancelOwnerSubmission, can, companyName, currentUser, ownerBusinessStatus, ownerBusinessStatusLabel, reviewOwnerSubmission, saveOwner, shopTypeName, state, submitOwnerToCompany, submitOwnerToTop, visibleAgents, visibleCompanies, visibleOwners, visibleShops, visibleSubmissions } from '@/store'
 import type { Owner, OwnerBusinessStatus, OwnerSubmission } from '@/types'
+import { maskAccount } from '@/utils/format'
 import { parseOwnerIntake, type ParsedOwnerIntake } from '@/utils/ownerParser'
 
 type AgentStatusFilter = 'all' | OwnerBusinessStatus | 'pending_review'
@@ -16,6 +17,9 @@ const submissionStatusFilter = ref('all')
 const shopTypeFilter = ref('all')
 const search = ref('')
 const reviewOpen = ref(false)
+const ownerDetailOpen = ref(false)
+const ownerDetail = ref<Owner | null>(null)
+const ownerDetailSubmission = ref<OwnerSubmission | null>(null)
 const reviewSubmission = ref<OwnerSubmission | null>(null)
 const reviewDecision = ref<'approved' | 'rejected'>('approved')
 const reviewRemark = ref('')
@@ -151,6 +155,26 @@ function submitFromPage() {
   if (!result.ok) { window.alert(result.reason); return }
   submitOpen.value = false
 }
+function openOwnerDetail(item: OwnerSubmission) {
+  ownerDetailSubmission.value = item
+  ownerDetail.value = state.owners.find(owner => owner.id === item.ownerId) || null
+  ownerDetailOpen.value = true
+}
+function ownerMediaItems(owner: Owner) {
+  return [
+    { label: '身份证正面', url: owner.idCardFront || '' },
+    { label: '身份证反面', url: owner.idCardBack || '' },
+    { label: '银行卡正面', url: owner.bankCardPhoto || '' },
+    { label: '银行卡反面', url: owner.bankCardBack || '' },
+    { label: '开店成功截图', url: owner.shopOpenProof || '' },
+    { label: '关店/封店截图', url: owner.shopCloseProof || '' },
+  ]
+}
+function reviewFromDetail(decision: 'approved' | 'rejected') {
+  if (!ownerDetailSubmission.value) return
+  openReview(ownerDetailSubmission.value, decision)
+  ownerDetailOpen.value = false
+}
 function openReview(item: OwnerSubmission, decision: 'approved' | 'rejected') {
   reviewSubmission.value = item; reviewDecision.value = decision
   reviewRemark.value = decision === 'rejected' ? '资料不符合开店要求，请补充后重新提交。' : '资料审核通过，可安排开店。'
@@ -207,7 +231,7 @@ function goCreateShop(item: OwnerSubmission) {
     </tbody></table></div>
 
     <div v-else class="table-wrap"><table class="data-table"><thead><tr><th>人头</th><th>提交公司</th><th>店铺类型</th><th>提交代理</th><th>提交时间</th><th>审核信息</th><th>状态</th><th>操作</th></tr></thead><tbody>
-      <tr v-for="item in companySubmissions" :key="item.id"><td><div class="primary-cell">{{ ownerName(item.ownerId) }}</div><div class="secondary-line">{{ state.owners.find(owner=>owner.id===item.ownerId)?.icNumber || '未填写 IC' }}</div></td><td>{{ companyName(item.companyId) }}</td><td><span class="badge info no-dot">{{ shopTypeName(item.shopTypeId) }}</span></td><td>{{ agentName(item.fromAgentId) }}</td><td>{{ item.submittedAt }}</td><td style="max-width:220px;color:var(--muted)">{{ item.reviewedBy || '—' }}<div class="secondary-line">{{ item.remark || '无备注' }}</div></td><td><span class="badge" :class="statusMeta[item.status].cls">{{ statusMeta[item.status].label }}</span></td><td><div class="row-actions"><button v-if="item.status==='pending'" class="btn danger small" @click="openReview(item,'rejected')">驳回</button><button v-if="item.status==='pending'" class="btn primary small" @click="openReview(item,'approved')">审核通过</button><button v-if="item.status==='approved'" class="btn primary small" @click="goCreateShop(item)">去开店</button></div></td></tr>
+      <tr v-for="item in companySubmissions" :key="item.id"><td><div class="primary-cell">{{ ownerName(item.ownerId) }}</div><div class="secondary-line">{{ state.owners.find(owner=>owner.id===item.ownerId)?.icNumber || '未填写 IC' }}</div></td><td>{{ companyName(item.companyId) }}</td><td><span class="badge info no-dot">{{ shopTypeName(item.shopTypeId) }}</span></td><td>{{ agentName(item.fromAgentId) }}</td><td>{{ item.submittedAt }}</td><td style="max-width:220px;color:var(--muted)">{{ item.reviewedBy || '—' }}<div class="secondary-line">{{ item.remark || '无备注' }}</div></td><td><span class="badge" :class="statusMeta[item.status].cls">{{ statusMeta[item.status].label }}</span></td><td><div class="row-actions"><button class="btn secondary small" @click="openOwnerDetail(item)"><Icon name="eye" :size="13"/>查看资料</button><button v-if="item.status==='pending'" class="btn danger small" @click="openReview(item,'rejected')">驳回</button><button v-if="item.status==='pending'" class="btn primary small" @click="openReview(item,'approved')">审核通过</button><button v-if="item.status==='approved'" class="btn primary small" @click="goCreateShop(item)">去开店</button></div></td></tr>
       <tr v-if="!companySubmissions.length"><td colspan="8"><div class="table-empty"><Icon name="file" :size="30"/><div>没有匹配的人头提交记录</div></div></td></tr>
     </tbody></table></div>
 
@@ -235,6 +259,36 @@ function goCreateShop(item: OwnerSubmission) {
         <div class="field full"><label>提交备注</label><textarea v-model="submissionRemark" class="textarea"></textarea></div>
       </div>
       <template #footer><button class="btn secondary" @click="submitOpen=false">取消</button><button class="btn primary" @click="submitFromPage"><Icon name="send" :size="15"/>确认提交</button></template>
+    </Modal>
+
+    <Modal :open="ownerDetailOpen" title="人头详细审核资料" width="960px" @close="ownerDetailOpen=false">
+      <div v-if="ownerDetail">
+        <div class="row between center"><div class="person-cell"><span class="avatar role-sub_agent" style="width:46px;height:46px;font-size: calc(16px + var(--font-boost))">{{ ownerDetail.name.slice(0,1) }}</span><span><strong style="font-size: calc(15px + var(--font-boost))">{{ ownerDetail.name }}</strong><small>{{ ownerDetail.phone || '未填写电话' }} · {{ ownerDetail.email || '未填写邮箱' }}</small></span></div><span class="badge" :class="ownerDetailSubmission ? statusMeta[ownerDetailSubmission.status].cls : 'neutral'">{{ ownerDetailSubmission ? statusMeta[ownerDetailSubmission.status].label : '无提交记录' }}</span></div>
+        <div class="detail-list" style="margin-top:20px">
+          <div class="detail-item"><label>IC 卡号</label><strong>{{ ownerDetail.icNumber || '未填写' }}</strong></div>
+          <div class="detail-item"><label>归属代理</label><strong>{{ agentName(ownerDetail.agentId) }}</strong></div>
+          <div class="detail-item"><label>开户银行</label><strong>{{ ownerDetail.bankName || '未填写' }}</strong></div>
+          <div class="detail-item"><label>开户人</label><strong>{{ ownerDetail.bankHolder || '未填写' }}</strong></div>
+          <div class="detail-item"><label>银行账号 ACC</label><strong>{{ isCompanyView ? maskAccount(ownerDetail.bankAccount) : (ownerDetail.bankAccount || '未填写') }}</strong></div>
+          <div class="detail-item"><label>银行卡号</label><strong>{{ isCompanyView ? maskAccount(ownerDetail.bankCardNumber || '') : (ownerDetail.bankCardNumber || '未填写') }}</strong></div>
+          <div class="detail-item"><label>有效期</label><strong>{{ ownerDetail.bankExpiry || '未填写' }}</strong></div>
+          <div class="detail-item"><label>CVV / CCTV</label><strong>{{ isCompanyView ? '公司端已隐藏' : (ownerDetail.bankCvv || '未填写') }}</strong></div>
+          <div class="detail-item"><label>提交公司</label><strong>{{ ownerDetailSubmission ? companyName(ownerDetailSubmission.companyId) : '—' }}</strong></div>
+          <div class="detail-item"><label>店铺类型</label><strong>{{ ownerDetailSubmission ? shopTypeName(ownerDetailSubmission.shopTypeId) : '—' }}</strong></div>
+          <div class="detail-item"><label>提交时间</label><strong>{{ ownerDetailSubmission?.submittedAt || '—' }}</strong></div>
+          <div class="detail-item"><label>提交代理</label><strong>{{ ownerDetailSubmission ? agentName(ownerDetailSubmission.fromAgentId) : '—' }}</strong></div>
+          <div class="detail-item full"><label>提交备注</label><strong>{{ ownerDetailSubmission?.remark || ownerDetail.remark || '无备注' }}</strong></div>
+        </div>
+        <div class="card-head" style="margin:20px 0 12px"><div><h3>身份证与银行卡图片</h3><p>公司审核时可放大查看证件和银行卡资料；银行账号默认脱敏展示。</p></div></div>
+        <div class="media-gallery">
+          <template v-for="item in ownerMediaItems(ownerDetail)" :key="item.label">
+            <button v-if="item.url" class="media-gallery-item" @click="preview=item"><img :src="item.url" :alt="item.label"/><div class="media-caption">{{ item.label }}</div></button>
+            <div v-else class="media-gallery-item empty-item">{{ item.label }}<br/>未上传</div>
+          </template>
+        </div>
+        <div class="callout info" style="margin-top:18px"><Icon name="shield" :size="17"/><div><strong>审核提示</strong><p>请核对人头身份、银行卡、店铺类型及图片凭证后再通过或驳回。敏感账号在正式环境中应加密存储。</p></div></div>
+      </div>
+      <template #footer><button class="btn secondary" @click="ownerDetailOpen=false">关闭</button><button v-if="ownerDetailSubmission?.status==='pending'" class="btn danger" @click="reviewFromDetail('rejected')">驳回</button><button v-if="ownerDetailSubmission?.status==='pending'" class="btn primary" @click="reviewFromDetail('approved')"><Icon name="check" :size="15"/>审核通过</button></template>
     </Modal>
 
     <Modal :open="reviewOpen" :title="reviewDecision==='approved'?'审核通过人头提交':'驳回头人提交'" @close="reviewOpen=false"><div class="field"><label>审核备注</label><textarea v-model="reviewRemark" class="textarea"></textarea></div><template #footer><button class="btn secondary" @click="reviewOpen=false">取消</button><button class="btn" :class="reviewDecision==='approved'?'primary':'danger'" @click="confirmReview">确认</button></template></Modal>

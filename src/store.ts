@@ -3,7 +3,7 @@ import { seedState, users } from '@/data/seed'
 import type { Agent, AppState, AuditLog, Company, CompanySettlementConfig, CompanySettlementTemplate, CompanyShopType, DistributionRule, OpenTask, Owner, OwnerBusinessStatus, OwnerSubmission, OwnerSubmissionStatus, SettlementBatch, SettlementDetail, Shop, ShopExpense, ShopType, ThemeId, UserAccount } from '@/types'
 import { calculateRent } from '@/utils/settlement'
 
-const STORAGE_KEY = 'fenflow-state-v10'
+const STORAGE_KEY = 'fenflow-state-v11'
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 
 const load = (): AppState => {
@@ -182,6 +182,7 @@ export const can = (permission: string) => {
     createTopAgent: ['platform'],
     manageOwners: ['platform', 'top_agent', 'sub_agent'],
     manageShops: ['platform', 'company'],
+    manageTrafficCards: ['platform', 'company'],
     submitOwnerToCompany: ['platform', 'top_agent'],
     reviewOwnerSubmission: ['platform', 'company'],
     manageExpenses: ['platform', 'top_agent'],
@@ -421,6 +422,12 @@ export function saveShop(shop: Shop) {
     addAudit('拒绝开店', shop.code, '该人头已经拥有相同类型的店铺')
     return { ok: false, reason: '该人头已经拥有相同类型的店铺，不能重复开店' }
   }
+  shop.trafficCardNumber = shop.trafficCardNumber?.trim() || ''
+  shop.trafficCardExpiryDate = shop.trafficCardExpiryDate || null
+  if (shop.trafficCardNumber && state.shops.some(item => item.id !== shop.id && item.trafficCardNumber === shop.trafficCardNumber)) {
+    addAudit('拒绝保存店铺', shop.code, '流量卡号已被其他店铺使用')
+    return { ok: false, reason: '该流量卡号已经绑定其他店铺，请核对后重试' }
+  }
   if (actor.role === 'company') {
     const approved = state.ownerSubmissions.some(item => item.ownerId === shop.ownerId && item.companyId === actor.companyId && item.shopTypeId === shop.shopTypeId && item.status === 'approved')
     if (!approved) {
@@ -433,6 +440,21 @@ export function saveShop(shop: Shop) {
   if (index >= 0) state.shops[index] = clone(shop)
   else state.shops.unshift(clone(shop))
   addAudit(index >= 0 ? '编辑店铺' : '新增店铺', shop.code, shopName(shop.id))
+  return { ok: true, reason: '' }
+}
+export function saveTrafficCard(shopId: string, trafficCardNumber: string, trafficCardExpiryDate: string | null) {
+  const shop = state.shops.find(item => item.id === shopId)
+  const actor = currentUser.value
+  if (!shop || !actor) return { ok: false, reason: '店铺或登录状态不存在' }
+  if (actor.role === 'company' && shop.companyId !== actor.companyId) return { ok: false, reason: '无权管理其他公司的流量卡' }
+  if (!['platform', 'company'].includes(actor.role)) return { ok: false, reason: '无权管理流量卡' }
+  const normalized = trafficCardNumber.trim()
+  if (normalized && state.shops.some(item => item.id !== shopId && item.trafficCardNumber === normalized)) {
+    return { ok: false, reason: '该流量卡号已经绑定其他店铺，请核对后重试' }
+  }
+  shop.trafficCardNumber = normalized
+  shop.trafficCardExpiryDate = trafficCardExpiryDate || null
+  addAudit('更新流量卡', shop.name, (normalized || '未配置卡号') + (trafficCardExpiryDate ? ' · 到期 ' + trafficCardExpiryDate : ' · 未设置到期日'))
   return { ok: true, reason: '' }
 }
 export function setShopStatus(id: string, status: Shop['status']) {

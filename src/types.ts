@@ -120,6 +120,8 @@ export interface Shop {
   openingFee?: number
   openProof?: string
   closeProof?: string
+  trafficCardNumber?: string
+  trafficCardExpiryDate?: string | null
   createdAt: string
 }
 
