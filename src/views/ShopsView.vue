@@ -9,6 +9,7 @@ import type { Owner, SettlementMode, Shop, ShopStatus } from '@/types'
 import { maskAccount, money } from '@/utils/format'
 import { downloadRows } from '@/utils/export'
 import { statusAfterCloseDateChange } from '@/utils/shop'
+import { createShopExportFields, type ShopExportFieldKey } from '@/utils/shopExport'
 
 const route = useRoute()
 const search = ref(String(route.query.q || ''))
@@ -22,6 +23,8 @@ const editingId = ref<string|null>(null)
 const selected = ref<Shop|null>(null)
 const preview = ref<{label:string;url:string}|null>(null)
 const selectedTemplateId = ref('')
+const exportOpen = ref(false)
+const exportFields = reactive(createShopExportFields())
 const form = reactive<Shop>({ id:'',code:'',name:'',region:'',companyId:'',ownerId:'',agentId:'',shopTypeId:'st1',status:'operating',openDate:'',closeDate:null,taskId:null,mode:'monthly',monthlyRent:280,openingFee:0,openProof:'',closeProof:'',createdAt:'' })
 const companyConfigFor=(shopId:string)=>visibleCompanySettlementConfigs.value.find(config=>config.shopId===shopId)
 const selectedTemplate=computed(()=>visibleCompanySettlementTemplates.value.find(template=>template.id===selectedTemplateId.value))
@@ -51,7 +54,36 @@ watch(() => [route.query.create, route.query.ownerId, route.query.shopTypeId], (
   const owner = visibleOwners.value.find(item => item.id === String(route.query.ownerId || ''))
   if (owner) openCreate(owner)
 }, { immediate: true })
-function exportShops(){ downloadRows('店铺档案-'+new Date().toISOString().slice(0,10),['店铺ID','编号','名称','公司','代理','人头','IC卡号','银行卡号','类型','模式','月租','开店费','开店截图','关店/封店截图','状态','开店日期','封店日期'],filtered.value.map(shop=>[shop.id,shop.code,shop.name,visibleCompanies.value.find(c=>c.id===shop.companyId)?.name || '',agentName(shop.agentId),ownerName(shop.ownerId),ownerForShop(shop)?.icNumber||'',ownerForShop(shop)?.bankAccount||'',typeName(shop.shopTypeId),modeLabelFor(shop),modeAmountFor(shop),shop.openingFee||0,(shop.openProof||ownerForShop(shop)?.shopOpenProof)?'已上传':'未上传',(shop.closeProof||ownerForShop(shop)?.shopCloseProof)?'已上传':'未上传',statusText[shop.status],shop.openDate,shop.closeDate||'']),'csv') }
+function exportShopValue(shop:Shop,key:ShopExportFieldKey):string|number {
+  const owner=ownerForShop(shop)
+  if(key==='name')return shop.name
+  if(key==='owner')return ownerName(shop.ownerId)
+  if(key==='agent')return agentName(shop.agentId)
+  if(key==='shopType')return typeName(shop.shopTypeId)
+  if(key==='openDate')return shop.openDate||'未填写'
+  if(key==='settlementMode')return modeLabelFor(shop)
+  if(key==='closeDate')return shop.closeDate||'未封店'
+  if(key==='shopId')return shop.id
+  if(key==='code')return shop.code
+  if(key==='company')return companyLabel(shop.companyId)
+  if(key==='region')return shop.region
+  if(key==='status')return statusText[shop.status]
+  if(key==='settlementAmount')return modeAmountFor(shop)
+  if(key==='openingFee')return shop.openingFee||0
+  if(key==='icNumber')return owner?.icNumber||''
+  if(key==='bankAccount')return canViewFullSensitive.value?(owner?.bankAccount||''):maskAccount(owner?.bankAccount||'')
+  if(key==='openProof')return (shop.openProof||owner?.shopOpenProof)?'已上传':'未上传'
+  return (shop.closeProof||owner?.shopCloseProof)?'已上传':'未上传'
+}
+function openExport(){ exportOpen.value=true }
+function selectAllExportFields(){ exportFields.forEach(field=>field.selected=true) }
+function resetExportFields(){ exportFields.forEach(field=>field.selected=field.default) }
+function exportShops(){
+  const fields=exportFields.filter(field=>field.selected)
+  if(!fields.length){window.alert('请至少选择一个导出字段');return}
+  downloadRows('店铺档案-'+new Date().toISOString().slice(0,10),fields.map(field=>field.label),filtered.value.map(shop=>fields.map(field=>exportShopValue(shop,field.key))),'csv')
+  exportOpen.value=false
+}
 </script>
 <template>
   <div>
@@ -61,7 +93,7 @@ function exportShops(){ downloadRows('店铺档案-'+new Date().toISOString().sl
       <select v-model="statusFilter" class="select" style="width:125px"><option value="all">全部状态</option><option value="operating">经营中</option><option value="paused">暂停</option><option value="closed">已关店</option></select>
       <select v-model="modeFilter" class="select" style="width:130px"><option value="all">全部模式</option><template v-if="currentUser?.role==='company'"><option value="one_time">一次性</option><option value="monthly">按月</option></template><template v-else><option value="monthly">按月</option><option value="head_fee">砍头</option></template></select>
       <span class="spacer"/>
-      <button class="btn secondary" @click="exportShops"><Icon name="download" :size="15"/>导出店铺表</button>
+      <button class="btn secondary" @click="openExport"><Icon name="download" :size="15"/>导出店铺表</button>
       <button v-if="can('manageShops')" class="btn primary" @click="openCreate()"><Icon name="plus" :size="15"/>新增店铺</button>
     </div>
     <section class="stats-grid">
@@ -134,6 +166,14 @@ function exportShops(){ downloadRows('店铺档案-'+new Date().toISOString().sl
         <div class="callout info" style="margin-top:18px"><Icon name="shield" :size="17"/><div><strong>数据权限</strong><p>顶级代理只能打开自己代理树下的店铺；公司端银行账号保持脱敏。正式环境图片应存放在私有对象存储中。</p></div></div>
       </div>
       <template #footer><button class="btn secondary" @click="detailOpen=false">关闭</button><button v-if="can('manageShops')" class="btn primary" @click="selected ? openEdit(selected) : undefined">编辑店铺</button></template>
+    </Modal>
+
+    <Modal :open="exportOpen" title="选择店铺导出字段" width="820px" @close="exportOpen=false">
+      <template #subtitle><p>默认导出店铺名称、人头、代理、店铺类型、开店时间、结算模式和封店日期；其他字段勾选后才会导出。</p></template>
+      <div class="row between center" style="margin-bottom:12px"><span class="hint">已选择 {{ exportFields.filter(field=>field.selected).length }} 个字段</span><div class="row" style="gap:7px"><button class="btn ghost small" @click="selectAllExportFields">全选</button><button class="btn secondary small" @click="resetExportFields">恢复默认</button></div></div>
+      <div class="export-field-grid"><label v-for="field in exportFields" :key="field.key" class="export-field" :class="{ selected: field.selected }"><input v-model="field.selected" type="checkbox"/><span>{{ field.label }}</span><b v-if="field.default">默认</b></label></div>
+      <div class="callout info" style="margin-top:14px"><Icon name="shield" :size="17"/><div><strong>敏感字段权限</strong><p>公司端银行卡号仍会自动脱敏；截图字段只导出“已上传/未上传”状态。</p></div></div>
+      <template #footer><button class="btn secondary" @click="exportOpen=false">取消</button><button class="btn primary" @click="exportShops"><Icon name="download" :size="15"/>导出已选字段</button></template>
     </Modal>
 
     <Teleport to="body">
