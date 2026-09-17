@@ -1,5 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import { can, isLoggedIn } from '@/store'
+import { can, currentUser, isLoggedIn } from '@/store'
 import AppShell from '@/components/AppShell.vue'
 import LoginView from '@/views/LoginView.vue'
 import DashboardView from '@/views/DashboardView.vue'
@@ -10,6 +10,9 @@ import SubmissionsView from '@/views/SubmissionsView.vue'
 import ShopsView from '@/views/ShopsView.vue'
 import TrafficCardsView from '@/views/TrafficCardsView.vue'
 import ProtectionPeriodsView from '@/views/ProtectionPeriodsView.vue'
+import AccountsView from '@/views/AccountsView.vue'
+import PartnerCompaniesView from '@/views/PartnerCompaniesView.vue'
+import ChangePasswordView from '@/views/ChangePasswordView.vue'
 import ShopTypesView from '@/views/ShopTypesView.vue'
 import TasksView from '@/views/TasksView.vue'
 import RulesView from '@/views/RulesView.vue'
@@ -25,6 +28,7 @@ const router = createRouter({
   history: createWebHashHistory(),
   routes: [
     { path: '/login', name: 'login', component: LoginView, meta: { title: '登录' } },
+    { path: '/change-password', name: 'change-password', component: ChangePasswordView, meta: { requiresAuth: true, title: '修改初始密码' } },
     {
       path: '/',
       component: AppShell,
@@ -37,6 +41,8 @@ const router = createRouter({
         { path: 'submissions', name: 'submissions', component: SubmissionsView, meta: { title: '人头提交', subtitle: '顶级代理提交公司，公司审核后安排开店', icon: 'send' } },
         { path: 'shop-types', name: 'shop-types', component: ShopTypesView, meta: { title: '店铺类型', subtitle: '管理公司运营平台，新增店铺时选择使用', icon: 'grid', permission: 'manageShopTypes' } },
         { path: 'shops', name: 'shops', component: ShopsView, meta: { title: '店铺档案', subtitle: '追踪店铺存活、归属和结算模式', icon: 'store' } },
+        { path: 'accounts', name: 'accounts', component: AccountsView, meta: { title: '账号管理', subtitle: '创建、停用、删除账号并管理首次登录密码', icon: 'users', permission: 'manageAccounts' } },
+        { path: 'partner-companies', name: 'partner-companies', component: PartnerCompaniesView, meta: { title: '合作公司', subtitle: '选择合作公司并保留历史合作数据', icon: 'building', permission: 'managePartnerCompanies' } },
         { path: 'protection-periods', name: 'protection-periods', component: ProtectionPeriodsView, meta: { title: '保护期', subtitle: '维护公司保护期类型，并在店铺开店时选择使用', icon: 'shield', permission: 'manageProtectionPeriods' } },
         { path: 'traffic-cards', name: 'traffic-cards', component: TrafficCardsView, meta: { title: '流量卡管理', subtitle: '一店一卡，维护流量卡号、每月续费日与到期状态', icon: 'card', permission: 'manageTrafficCards' } },
         { path: 'tasks', name: 'tasks', component: TasksView, meta: { title: '开店任务', subtitle: '发布、承接与追踪开店任务进度', icon: 'briefcase', permission: 'viewTasks' } },
@@ -55,7 +61,9 @@ const router = createRouter({
 
 router.beforeEach(to => {
   if (to.meta.requiresAuth && !isLoggedIn.value) return { name: 'login' }
-  if (to.name === 'login' && isLoggedIn.value) return { name: 'dashboard' }
+  if (to.name === 'login' && isLoggedIn.value) return currentUser.value?.mustChangePassword ? { name: 'change-password' } : { name: 'dashboard' }
+  if (isLoggedIn.value && currentUser.value?.mustChangePassword && to.name !== 'change-password') return { name: 'change-password' }
+  if (to.name === 'change-password' && isLoggedIn.value && !currentUser.value?.mustChangePassword) return { name: 'dashboard' }
   if (to.meta.permission && !can(String(to.meta.permission))) return { name: 'dashboard' }
 })
 

@@ -1,6 +1,6 @@
 import { computed, reactive, watch } from 'vue'
-import { seedState, users } from '@/data/seed'
-import type { Agent, AppState, AuditLog, Company, CompanySettlementConfig, CompanySettlementTemplate, CompanyShopType, ProtectionPeriodTemplate, DistributionRule, OpenTask, Owner, OwnerBusinessStatus, OwnerSubmission, OwnerSubmissionStatus, SettlementBatch, SettlementDetail, Shop, ShopExpense, ShopType, SystemSettings, ThemeId, UserAccount } from '@/types'
+import { seedState } from '@/data/seed'
+import type { AccountStatus, Agent, AppState, AuditLog, Company, CompanySettlementConfig, CompanySettlementTemplate, CompanyShopType, ProtectionPeriodTemplate, DistributionRule, OpenTask, Owner, OwnerBusinessStatus, OwnerSubmission, OwnerSubmissionStatus, SettlementBatch, SettlementDetail, Shop, ShopExpense, ShopType, SystemSettings, ThemeId, UserAccount } from '@/types'
 import { calculateRent } from '@/utils/settlement'
 
 const STORAGE_KEY = 'fenflow-state-v12'
@@ -15,6 +15,7 @@ const load = (): AppState => {
     return {
       ...fresh,
       ...parsed,
+      accounts: parsed.accounts || fresh.accounts,
       systemSettings: { ...fresh.systemSettings, ...(parsed.systemSettings || {}) },
       companies: parsed.companies || fresh.companies,
       agents: parsed.agents || fresh.agents,
@@ -44,7 +45,7 @@ watch(state, value => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
 }, { deep: true })
 
-export const currentUser = computed(() => users.find(user => user.id === state.currentUserId) || null)
+export const currentUser = computed(() => state.accounts.find(user => user.id === state.currentUserId) || null)
 export const isLoggedIn = computed(() => Boolean(currentUser.value))
 
 const descendants = (agentId: string): string[] => {
@@ -58,6 +59,14 @@ const descendants = (agentId: string): string[] => {
   }
   return [...new Set(result)]
 }
+
+export const visibleAccounts = computed(() => {
+  const user = currentUser.value
+  if (!user) return []
+  if (user.role === 'platform') return state.accounts
+  if (user.role === 'top_agent') return state.accounts.filter(account => account.id === user.id || (account.agentId && visibleAgentIds.value.includes(account.agentId)))
+  return state.accounts.filter(account => account.id === user.id)
+})
 
 export const visibleAgentIds = computed(() => {
   const user = currentUser.value
@@ -187,6 +196,8 @@ export const can = (permission: string) => {
     viewReports: ['platform', 'company', 'top_agent'],
     manageCompanySettlement: ['platform', 'company'],
     manageProtectionPeriods: ['platform', 'company'],
+    manageAccounts: ['platform', 'top_agent'],
+    managePartnerCompanies: ['top_agent'],
     manageShopTypes: ['platform', 'company'],
     manageAgents: ['platform', 'top_agent'],
     createTopAgent: ['platform'],
@@ -220,19 +231,131 @@ export function addAudit(action: string, target: string, detail: string) {
 }
 
 export function authenticate(username: string, password: string) {
-  const user = users.find(item => item.username.toLowerCase() === username.trim().toLowerCase())
+  const user = state.accounts.find(item => item.username.toLowerCase() === username.trim().toLowerCase())
   if (!user) return { ok: false, reason: '账号不存在' }
-  if (user.demoPassword !== password) return { ok: false, reason: '密码错误，请重新输入' }
+  if (user.status === 'disabled') return { ok: false, reason: '账号已停用，请联系管理员' }
+  if (user.status === 'locked' || (user.lockedUntil && user.lockedUntil > new Date().toISOString())) return { ok: false, reason: '账号已锁定，请重置密码后重试' }
+  if (user.password !== password) {
+    user.failedLoginCount += 1
+    if (user.failedLoginCount >= 5) {
+      user.status = 'locked'
+      user.lockedUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString()
+      addAudit('锁定账号', user.username, '连续登录失败 5 次')
+    }
+    return { ok: false, reason: user.status === 'locked' ? '账号已锁定，请 15 分钟后重试' : '密码错误，请重新输入' }
+  }
+  user.failedLoginCount = 0
+  user.lockedUntil = null
+  user.lastLoginAt = new Date().toISOString().slice(0, 16).replace('T', ' ')
   login(user)
   return { ok: true, reason: '' }
 }
 
 export function login(user: UserAccount) {
   state.currentUserId = user.id
-  state.language = state.systemSettings.defaultLanguage
-  state.theme = state.systemSettings.defaultTheme
+  state.language = user.language || state.systemSettings.defaultLanguage
+  state.theme = user.theme || state.systemSettings.defaultTheme
   document.documentElement.dataset.theme = String(state.theme)
   addAudit('登录系统', user.name, user.roleLabel + '登录平台')
+}
+
+const roleLabels: Record<UserAccount['role'], string> = {
+  platform: '平台管理员',
+  company: '公司负责人',
+  top_agent: '顶级代理',
+  sub_agent: '子代理',
+}
+
+function canManageAccount(account: UserAccount) {
+  const actor = currentUser.value
+  if (!actor) return false
+  if (actor.role === 'platform') return account.id !== actor.id
+  if (actor.role === 'top_agent') return account.role === 'sub_agent' && Boolean(account.agentId && descendants(actor.agentId || '').includes(account.agentId))
+  return false
+}
+
+export function saveAccount(account: UserAccount) {
+  const actor = currentUser.value
+  if (!actor || !['platform', 'top_agent'].includes(actor.role)) return { ok: false, reason: '无权管理账号' }
+  if (actor.role === 'top_agent') {
+    if (account.role !== 'sub_agent' || !account.agentId || !descendants(actor.agentId || '').includes(account.agentId)) {
+      return { ok: false, reason: '顶级代理只能为自己代理树下的子代理开号' }
+    }
+  }
+  if (actor.role === 'platform' && !['company', 'top_agent', 'sub_agent'].includes(account.role)) return { ok: false, reason: '不支持的账号类型' }
+  const username = account.username.trim().toLowerCase()
+  if (!username) return { ok: false, reason: '请填写登录账号' }
+  if (state.accounts.some(item => item.id !== account.id && item.username.toLowerCase() === username)) return { ok: false, reason: '登录账号已存在' }
+  const duplicate = state.accounts.some(item => item.id !== account.id && item.role === account.role && item.companyId === account.companyId && item.agentId === account.agentId)
+  if (duplicate) return { ok: false, reason: '该公司或代理已经存在账号，请编辑或启用原账号' }
+  if (!account.password || account.password.length < 8) return { ok: false, reason: '初始密码至少 8 位' }
+  const index = state.accounts.findIndex(item => item.id === account.id)
+  const now = new Date().toISOString().slice(0, 16).replace('T', ' ')
+  const next = clone({
+    ...account,
+    username,
+    roleLabel: account.roleLabel || roleLabels[account.role],
+    initials: account.initials || account.name.slice(0, 1).toUpperCase(),
+    status: account.status || 'active',
+    mustChangePassword: index < 0 ? true : account.mustChangePassword,
+    failedLoginCount: account.failedLoginCount || 0,
+    lockedUntil: account.lockedUntil || null,
+    lastLoginAt: account.lastLoginAt || null,
+    updatedAt: now,
+    createdBy: account.createdBy || actor.name,
+    createdAt: account.createdAt || now,
+  })
+  if (index >= 0) state.accounts[index] = next
+  else state.accounts.unshift(next)
+  addAudit(index >= 0 ? '编辑账号' : '创建账号', next.name, next.roleLabel + ' · ' + next.username)
+  return { ok: true, reason: '' }
+}
+
+export function resetAccountPassword(id: string, password: string) {
+  const account = state.accounts.find(item => item.id === id)
+  if (!account || !canManageAccount(account)) return { ok: false, reason: '无权重置该账号密码' }
+  if (password.length < 8) return { ok: false, reason: '密码至少 8 位' }
+  account.password = password
+  account.mustChangePassword = true
+  account.status = 'active'
+  account.failedLoginCount = 0
+  account.lockedUntil = null
+  account.updatedAt = new Date().toISOString().slice(0, 16).replace('T', ' ')
+  addAudit('重置账号密码', account.name, account.username + ' 首次登录需修改密码')
+  return { ok: true, reason: '' }
+}
+
+export function setAccountStatus(id: string, status: AccountStatus) {
+  const account = state.accounts.find(item => item.id === id)
+  if (!account || !canManageAccount(account)) return { ok: false, reason: '无权修改该账号状态' }
+  account.status = status
+  account.disabledAt = status === 'disabled' ? new Date().toISOString().slice(0, 16).replace('T', ' ') : null
+  account.updatedAt = new Date().toISOString().slice(0, 16).replace('T', ' ')
+  addAudit(status === 'disabled' ? '停用账号' : '启用账号', account.name, account.username)
+  return { ok: true, reason: '' }
+}
+
+export function deleteAccount(id: string) {
+  const account = state.accounts.find(item => item.id === id)
+  const actor = currentUser.value
+  if (!account || !actor) return { ok: false, reason: '账号不存在' }
+  if (account.id === actor.id) return { ok: false, reason: '不能删除当前登录账号' }
+  if (!canManageAccount(account)) return { ok: false, reason: '无权删除该账号' }
+  state.accounts = state.accounts.filter(item => item.id !== id)
+  addAudit('删除账号', account.name, account.roleLabel + ' · ' + account.username + '；业务数据保留')
+  return { ok: true, reason: '' }
+}
+
+export function changeOwnPassword(currentPassword: string, nextPassword: string) {
+  const account = currentUser.value
+  if (!account) return { ok: false, reason: '登录状态已失效' }
+  if (account.password !== currentPassword) return { ok: false, reason: '当前密码不正确' }
+  if (nextPassword.length < 8 || !/[A-Za-z]/.test(nextPassword) || !/\d/.test(nextPassword)) return { ok: false, reason: '新密码至少 8 位，且必须包含字母和数字' }
+  account.password = nextPassword
+  account.mustChangePassword = false
+  account.updatedAt = new Date().toISOString().slice(0, 16).replace('T', ' ')
+  addAudit('修改密码', account.name, '账号密码已更新')
+  return { ok: true, reason: '' }
 }
 
 export function logout() {
@@ -284,6 +407,19 @@ export function deleteCompany(id: string) {
   const item = state.companies.find(company => company.id === id)
   state.companies = state.companies.filter(company => company.id !== id)
   if (item) addAudit('停用公司', item.name, '已从当前数据视图移除')
+}
+export function saveAgentCompanies(companyIds: string[]) {
+  const actor = currentUser.value
+  if (!actor || actor.role !== 'top_agent' || !actor.agentId) return { ok: false, reason: '只有顶级代理可以选择合作公司' }
+  const agent = state.agents.find(item => item.id === actor.agentId)
+  if (!agent) return { ok: false, reason: '代理资料不存在' }
+  const previous = new Set(agent.companyIds)
+  const nextIds = [...new Set(companyIds)]
+  const removed = agent.companyIds.filter(id => !nextIds.includes(id))
+  agent.historicalCompanyIds = [...new Set([...(agent.historicalCompanyIds || []), ...removed])]
+  agent.companyIds = nextIds
+  addAudit('更新合作公司', agent.name, '当前 ' + nextIds.length + ' 家 · 新增 ' + nextIds.filter(id => !previous.has(id)).length + ' 家 · 取消 ' + removed.length + ' 家')
+  return { ok: true, reason: '' }
 }
 export function saveAgent(agent: Agent) {
   const index = state.agents.findIndex(item => item.id === agent.id)

@@ -1,5 +1,6 @@
 export type Role = 'platform' | 'company' | 'top_agent' | 'sub_agent'
 export type Status = 'active' | 'disabled' | 'pending'
+export type AccountStatus = 'active' | 'disabled' | 'locked' | 'pending'
 export type ShopStatus = 'operating' | 'paused' | 'closed' | 'preparing'
 export type SettlementMode = 'monthly' | 'head_fee'
 export type CompanySettlementMode = 'one_time' | 'monthly'
@@ -10,13 +11,23 @@ export interface UserAccount {
   id: string
   name: string
   username: string
-  demoPassword: string
+  password: string
   role: Role
   companyId?: string
   agentId?: string
   roleLabel: string
   initials: string
   language: Language
+  theme?: ThemeId
+  status: AccountStatus
+  mustChangePassword: boolean
+  failedLoginCount: number
+  lockedUntil: string | null
+  lastLoginAt: string | null
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+  disabledAt?: string | null
 }
 
 export interface Company {
@@ -38,6 +49,7 @@ export interface Agent {
   companyIds: string[]
   contact: string
   status: Status
+  historicalCompanyIds?: string[]
   createdAt: string
 }
 
@@ -265,6 +277,7 @@ export interface SystemSettings {
 
 export interface AppState {
   currentUserId: string | null
+  accounts: UserAccount[]
   language: Language
   theme: ThemeId
   systemSettings: SystemSettings

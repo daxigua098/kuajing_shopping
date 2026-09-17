@@ -2,9 +2,8 @@
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Icon from '@/components/Icon.vue'
-import { users } from '@/data/seed'
-import { authenticate, setTheme, state } from '@/store'
-import type { ThemeId, UserAccount } from '@/types'
+import { authenticate, currentUser, setTheme, state } from '@/store'
+import type { ThemeId } from '@/types'
 
 const router = useRouter()
 const form = reactive({ username: '', password: '' })
@@ -16,18 +15,7 @@ const themes: { id: ThemeId; name: string }[] = [
   { id: 3, name: '瑞士财务网格' },
   { id: 4, name: '代理关系图谱' },
 ]
-const roleCopy: Record<UserAccount['role'], string> = {
-  platform: '管理公司、代理、角色、权限与全平台审计',
-  company: '发布任务、查店铺人头、确认结算和杂费',
-  top_agent: '管理代理树、承接任务、提交人头给公司',
-  sub_agent: '管理人头和店铺，提交人头给顶级代理',
-}
 const year = computed(() => new Date().getFullYear())
-function fillDemo(user: UserAccount) {
-  form.username = user.username
-  form.password = user.demoPassword
-  error.value = ''
-}
 function submitLogin() {
   error.value = ''
   if (!form.username.trim() || !form.password) {
@@ -39,7 +27,7 @@ function submitLogin() {
     error.value = result.reason
     return
   }
-  router.push({ name: 'dashboard' })
+  router.push({ name: currentUser.value?.mustChangePassword ? 'change-password' : 'dashboard' })
 }
 function chooseTheme(id: ThemeId) {
   setTheme(id)
@@ -73,15 +61,6 @@ function chooseTheme(id: ThemeId) {
           <div v-if="error" class="callout danger login-error"><Icon name="alert" :size="16"/><div><strong>登录失败</strong><p>{{ error }}</p></div></div>
           <button class="btn primary login-submit" type="submit"><Icon name="shield" :size="16"/>安全登录</button>
         </form>
-
-        <div class="demo-accounts">
-          <div class="row between center" style="margin-bottom:9px"><strong>测试账号</strong><span class="hint">点击账号自动填入，再点击“安全登录”</span></div>
-          <button v-for="user in users" :key="user.id" class="demo-account" @click="fillDemo(user)">
-            <span class="avatar" :class="'role-'+user.role">{{ user.initials }}</span>
-            <span style="flex:1"><strong>{{ user.roleLabel }} · {{ user.name }}</strong><small>{{ user.username }} / {{ user.demoPassword }}</small></span>
-            <span class="hint">{{ roleCopy[user.role].slice(0, 12) }}…</span>
-          </button>
-        </div>
 
         <div class="page-toolbar" style="margin-top:16px">
           <span class="hint">演示密码仅用于当前本地原型；正式环境应使用 BCrypt / Argon2id 和 MFA。</span>

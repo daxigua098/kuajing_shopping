@@ -3,14 +3,14 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Icon from './Icon.vue'
 import { can, currentUser, logout, setTheme, state, unresolvedExpenses } from '@/store'
-import { users } from '@/data/seed'
 import type { ThemeId } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const mobileOpen = ref(false)
 const userOpen = ref(false)
-const nav = [
+interface NavItem { name: string; label: string; icon: string; permission?: string; badge?: boolean; platformOnly?: boolean; topAgentOnly?: boolean }
+const nav: Array<{ group: string; items: NavItem[] }> = [
   { group: '业务总览', items: [{ name: 'dashboard', label: '经营工作台', icon: 'dashboard' }] },
   { group: '组织与档案', items: [
     { name: 'companies', label: '公司管理', icon: 'building', permission: 'manageCompanies' },
@@ -21,6 +21,8 @@ const nav = [
     { name: 'shops', label: '店铺档案', icon: 'store' },
     { name: 'protection-periods', label: '保护期', icon: 'shield', permission: 'manageProtectionPeriods' },
     { name: 'traffic-cards', label: '流量卡管理', icon: 'card', permission: 'manageTrafficCards' },
+    { name: 'partner-companies', label: '合作公司', icon: 'building', permission: 'managePartnerCompanies' },
+    { name: 'accounts', label: '下级账号', icon: 'users', permission: 'manageAccounts', topAgentOnly: true },
   ] },
   { group: '业务运营', items: [
     { name: 'tasks', label: '开店任务', icon: 'briefcase', permission: 'viewTasks' },
@@ -34,11 +36,12 @@ const nav = [
     { name: 'reports', label: '报表与导出', icon: 'chart', permission: 'viewReports' },
   ] },
   { group: '系统', items: [
+    { name: 'accounts', label: '账号管理', icon: 'users', permission: 'manageAccounts', platformOnly: true },
     { name: 'audit', label: '操作日志', icon: 'history', permission: 'viewAudit' },
     { name: 'settings', label: '系统设置', icon: 'settings' },
   ] },
 ]
-const filteredNav = computed(() => nav.map(group => ({ ...group, items: group.items.filter(item => !item.permission || can(item.permission)) })).filter(group => group.items.length))
+const filteredNav = computed(() => nav.map(group => ({ ...group, items: group.items.filter(item => (!item.permission || can(item.permission)) && (!item.platformOnly || currentUser.value?.role === 'platform') && (!item.topAgentOnly || currentUser.value?.role === 'top_agent')) })).filter(group => group.items.length))
 const pageTitle = computed(() => String(route.meta.title || state.systemSettings.systemName))
 const pageSubtitle = computed(() => String(route.meta.subtitle || ''))
 const today = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' }).format(new Date())
@@ -52,16 +55,6 @@ const themes: { id: ThemeId; name: string; colors: string[] }[] = [
 function chooseTheme(id: ThemeId) { setTheme(id); userOpen.value = false }
 function go(name: string) { router.push({ name }); mobileOpen.value = false }
 function doLogout() { logout(); router.push({ name: 'login' }) }
-function switchUser(id: string) {
-  const selected = users.find(u => u.id === id)
-  if (!selected) return
-  state.currentUserId = id
-  state.language = state.systemSettings.defaultLanguage
-  state.theme = state.systemSettings.defaultTheme
-  document.documentElement.dataset.theme = String(state.theme)
-  userOpen.value = false
-  router.push({ name: 'dashboard' })
-}
 function submitSearch() {
   if (!search.value.trim()) return
   router.push({ name: 'shops', query: { q: search.value.trim() } })
@@ -105,13 +98,6 @@ function submitSearch() {
         </button>
         <Transition name="pop">
           <div v-if="userOpen" class="user-menu">
-            <div class="menu-title">切换演示角色</div>
-            <button v-for="user in users" :key="user.id" :class="{ active: user.id === state.currentUserId }" @click="switchUser(user.id)">
-              <span class="avatar small-avatar">{{ user.initials }}</span>
-              <span><strong>{{ user.name }}</strong><small>{{ user.roleLabel }}</small></span>
-              <Icon v-if="user.id === state.currentUserId" name="check" :size="15" />
-            </button>
-            <div class="menu-divider" />
             <button @click="doLogout"><Icon name="logout" :size="16" /><span><strong>退出登录</strong><small>返回角色选择页</small></span></button>
           </div>
         </Transition>

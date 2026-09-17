@@ -1,11 +1,11 @@
 import type { AppState, AuditLog, SystemSettings, Agent, Company, CompanySettlementConfig, CompanySettlementTemplate, CompanyShopType, ProtectionPeriodTemplate, DistributionRule, OpenTask, Owner, OwnerSubmission, SettlementBatch, SettlementDetail, Shop, ShopExpense, ShopType, UserAccount } from '@/types'
 
-export const users: UserAccount[] = [
-  { id: 'u1', name: '林泽宇', username: 'admin', demoPassword: 'Admin@123456', role: 'platform', roleLabel: '平台管理员', initials: '林', language: 'zh' },
-  { id: 'u2', name: '周雅雯', username: 'company', demoPassword: 'Company@123456', role: 'company', companyId: 'c1', roleLabel: '公司负责人', initials: '周', language: 'zh' },
-  { id: 'u3', name: '陈俊豪', username: 'topagent', demoPassword: 'Top@123456', role: 'top_agent', agentId: 'a1', roleLabel: '顶级代理', initials: '陈', language: 'zh' },
-  { id: 'u4', name: 'Aiman', username: 'subagent', demoPassword: 'Sub@123456', role: 'sub_agent', agentId: 'a3', roleLabel: '子代理', initials: 'A', language: 'zh' },
-  { id: 'u5', name: 'Alex Lim', username: 'company2', demoPassword: 'Company2@123456', role: 'company', companyId: 'c2', roleLabel: '公司负责人 B', initials: 'AL', language: 'zh' },
+const users: UserAccount[] = [
+  { id: 'u1', name: '林泽宇', username: 'admin', password: 'Admin@123456', role: 'platform', roleLabel: '平台管理员', initials: '林', language: 'zh', theme: 2, status: 'active', mustChangePassword: false, failedLoginCount: 0, lockedUntil: null, lastLoginAt: null, createdBy: '系统初始化', createdAt: '2025-11-01', updatedAt: '2026-09-01' },
+  { id: 'u2', name: '周雅雯', username: 'company', password: 'Company@123456', role: 'company', companyId: 'c1', roleLabel: '公司负责人', initials: '周', language: 'zh', theme: 2, status: 'active', mustChangePassword: false, failedLoginCount: 0, lockedUntil: null, lastLoginAt: null, createdBy: '系统初始化', createdAt: '2025-11-12', updatedAt: '2026-09-01' },
+  { id: 'u3', name: '陈俊豪', username: 'topagent', password: 'Top@123456', role: 'top_agent', agentId: 'a1', roleLabel: '顶级代理', initials: '陈', language: 'zh', theme: 2, status: 'active', mustChangePassword: false, failedLoginCount: 0, lockedUntil: null, lastLoginAt: null, createdBy: '系统初始化', createdAt: '2025-11-20', updatedAt: '2026-09-01' },
+  { id: 'u4', name: 'Aiman', username: 'subagent', password: 'Sub@123456', role: 'sub_agent', agentId: 'a3', roleLabel: '子代理', initials: 'A', language: 'zh', theme: 2, status: 'active', mustChangePassword: false, failedLoginCount: 0, lockedUntil: null, lastLoginAt: null, createdBy: '系统初始化', createdAt: '2026-01-05', updatedAt: '2026-09-01' },
+  { id: 'u5', name: 'Alex Lim', username: 'company2', password: 'Company2@123456', role: 'company', companyId: 'c2', roleLabel: '公司负责人 B', initials: 'AL', language: 'zh', theme: 2, status: 'active', mustChangePassword: false, failedLoginCount: 0, lockedUntil: null, lastLoginAt: null, createdBy: '系统初始化', createdAt: '2025-12-03', updatedAt: '2026-09-01' },
 ]
 
 const companies: Company[] = [
@@ -357,6 +357,7 @@ const systemSettings: SystemSettings = {
 
 export const seedState = (): AppState => ({
   currentUserId: null,
+  accounts: users,
   language: systemSettings.defaultLanguage,
   theme: systemSettings.defaultTheme,
   systemSettings,
