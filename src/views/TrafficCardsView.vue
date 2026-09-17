@@ -75,9 +75,10 @@ function exportCards() {
 
     <div class="callout info" style="margin-bottom:15px"><Icon name="card" :size="18"/><div><strong>一店一卡</strong><p>流量卡号与店铺唯一绑定，并记录每月到期续费日。续费完成后请及时更新下一期到期日期。</p></div></div>
 
-    <div class="table-wrap"><table class="data-table"><thead><tr><th>店铺</th><th>人头</th><th>公司 / 代理</th><th>流量卡号码</th><th>每月续费</th><th>到期日期</th><th>状态</th><th>操作</th></tr></thead><tbody>
+    <div class="table-wrap"><table class="data-table"><thead><tr><th>店铺编号</th><th>店铺名称</th><th>人头</th><th>公司 / 代理</th><th>流量卡号码</th><th>每月续费</th><th>到期日期</th><th>状态</th><th>操作</th></tr></thead><tbody>
       <tr v-for="shop in filtered" :key="shop.id">
-        <td><div class="primary-cell">{{ shop.name }}</div><div class="secondary-line">{{ shop.code }}</div></td>
+        <td><div class="primary-cell">{{ shop.code }}</div></td>
+        <td><div class="primary-cell">{{ shop.name }}</div></td>
         <td>{{ ownerName(shop.ownerId) }}</td>
         <td>{{ companyName(shop.companyId) }}<div class="secondary-line">{{ agentName(shop.agentId) }}</div></td>
         <td><code style="color:var(--primary);font-weight:800">{{ shop.trafficCardNumber || '未配置' }}</code></td>
@@ -86,7 +87,7 @@ function exportCards() {
         <td><span class="badge" :class="statusMeta[trafficCardStatus(shop)].cls">{{ statusMeta[trafficCardStatus(shop)].label }}</span></td>
         <td><button v-if="can('manageTrafficCards')" class="btn secondary small" @click="openEdit(shop)"><Icon name="edit" :size="13"/>编辑卡片</button></td>
       </tr>
-      <tr v-if="!filtered.length"><td colspan="8"><div class="table-empty"><Icon name="card" :size="30"/><div>没有匹配的流量卡</div></div></td></tr>
+      <tr v-if="!filtered.length"><td colspan="9"><div class="table-empty"><Icon name="card" :size="30"/><div>没有匹配的流量卡</div></div></td></tr>
     </tbody></table></div>
 
     <Modal :open="modalOpen" title="编辑店铺流量卡" width="620px" @close="modalOpen=false">

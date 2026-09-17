@@ -130,6 +130,8 @@ test('traffic card management is wired into navigation and shops', async () => {
   assert.ok(router.includes("name: 'traffic-cards'"))
   assert.ok(shell.includes('流量卡管理'))
   assert.ok(shops.includes('流量卡号码'))
+  assert.ok(view.includes('<th>店铺编号</th><th>店铺名称</th><th>人头</th>'))
+  assert.ok(view.includes('<td><div class="primary-cell">{{ shop.code }}</div></td>'))
 })
 
 test('company review can open complete owner audit details', async () => {
