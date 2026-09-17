@@ -6,6 +6,7 @@ import { statusAfterCloseDateChange } from '../src/utils/shop.ts'
 import { createShopExportFields, defaultShopExportFieldKeys } from '../src/utils/shopExport.ts'
 import { isShopInProtection, protectionMonthDistance } from '../src/utils/protection.ts'
 import { matchesShopDateRange } from '../src/utils/shopDateFilter.ts'
+import { createSettlementExportFields, defaultSettlementExportFieldKeys } from '../src/utils/settlementExport.ts'
 import { daysUntilTrafficExpiry, trafficCardStatus } from '../src/utils/trafficCard.ts'
 
 test('seed exposes enough pending owner submissions for company queries', () => {
@@ -201,4 +202,17 @@ test('protection period management and shop selection are wired into the UI', as
   assert.ok(settlement.includes("'店铺保护期'"))
   assert.ok(router.includes("name: 'protection-periods'"))
   assert.ok(shell.includes("label: '保护期'"))
+})
+
+test('monthly settlement export defaults and shop status are visible', async () => {
+  assert.deepEqual(defaultSettlementExportFieldKeys, ['shopCode', 'shopName', 'ownerName', 'openDate', 'shopStatus'])
+  const fields = createSettlementExportFields()
+  assert.equal(fields.filter(field => field.selected).length, 5)
+  for (const field of fields) assert.equal(field.selected, defaultSettlementExportFieldKeys.includes(field.key))
+
+  const settlement = await readFile(new URL('../src/views/SettlementView.vue', import.meta.url), 'utf8')
+  assert.ok(settlement.includes('<th>店铺状态</th>'))
+  assert.ok(settlement.includes("?'存活':'关店'"))
+  assert.ok(settlement.includes('选择月度核算导出字段'))
+  assert.ok(settlement.includes('默认导出店铺编号、店铺名称、人头名字、开店日期和状态'))
 })
