@@ -9,6 +9,7 @@ import { downloadRows } from '@/utils/export'
 
 const month=ref('2026-08')
 const viewMode=ref<'rent'|'expense'>('rent')
+const includeExpenseProof=ref(false)
 const statusFilter=ref('all')
 const expenseStatusFilter=ref('all')
 const search=ref('')
@@ -61,7 +62,11 @@ function exportBatch(){
   if(!activeBatch.value)return
   if(viewMode.value==='rent' && isCompanyUser.value) downloadRows('公司店租明细-'+activeBatch.value.month,['店铺编号','店铺','公司','地区','开店日期','关店日期','存活周期','计费口径','月租'],companyRentRows.value.map(row=>[row.shop?.code||'',row.shop?.name||'',companyName(row.detail.companyId),row.shop?.region||'',row.shop?.openDate||'',row.shop?.closeDate||'未关店',row.survivalText,row.billing.reason,row.billing.amount]),'csv')
   else if(viewMode.value==='rent') downloadRows('店租明细-'+activeBatch.value.month,['店铺编号','店铺','人头','代理','公司','结算模式','店租','状态','核算说明'],details.value.filter(item=>item.rent>0).map(detail=>[state.shops.find(s=>s.id===detail.shopId)?.code||'',shopName(detail.shopId),ownerName(detail.ownerId),agentName(detail.agentId),companyName(detail.companyId),modeLabel(detail.mode),detail.rent,detail.status,detail.reason]),'csv')
-  else downloadRows('杂费明细-'+activeBatch.value.month,['店铺编号','店铺','人头','代理','公司','垫付代理','用途','金额','币种','凭证','状态'],expenseRows.value.map(item=>[state.shops.find(s=>s.id===item.shopId)?.code||'',shopName(item.shopId),ownerName(state.shops.find(s=>s.id===item.shopId)?.ownerId||''),agentName(state.shops.find(s=>s.id===item.shopId)?.agentId||''),companyName(item.companyId),agentName(item.advanceAgentId),item.purpose,item.amount,item.currency,item.attachment?'已上传截图':'无',item.status]),'csv')
+  else {
+    const headers=['店铺编号','店铺','人头','代理','公司','垫付代理','用途','金额','币种','凭证状态','状态',...(includeExpenseProof.value?['费用凭证图片']:[])]
+    const rows=expenseRows.value.map(item=>[state.shops.find(s=>s.id===item.shopId)?.code||'',shopName(item.shopId),ownerName(state.shops.find(s=>s.id===item.shopId)?.ownerId||''),agentName(state.shops.find(s=>s.id===item.shopId)?.agentId||''),companyName(item.companyId),agentName(item.advanceAgentId),item.purpose,item.amount,item.currency,item.attachment?'已上传截图':'无',item.status,...(includeExpenseProof.value?[item.attachment||'']:[])])
+    downloadRows('杂费明细-'+activeBatch.value.month,headers,rows,'csv')
+  }
 }
 function exportSummary(){
   if(!activeBatch.value)return
@@ -77,6 +82,7 @@ function exportSummary(){
       <div class="segmented"><button :class="{active:viewMode==='rent'}" @click="viewMode='rent'">店租</button><button :class="{active:viewMode==='expense'}" @click="viewMode='expense'">杂费</button></div>
       <div v-if="viewMode==='rent'" class="segmented"><button v-for="tab in [{v:'all',t:'全部明细'},{v:'draft',t:'待确认'},{v:'confirmed',t:'已确认'},{v:'paid',t:'已支付'}]" :key="tab.v" :class="{active:statusFilter===tab.v}" @click="statusFilter=tab.v">{{tab.t}}</button></div>
       <div v-else class="segmented"><button v-for="tab in [{v:'all',t:'全部'},{v:'pending',t:'待确认'},{v:'settled',t:'已结清'},{v:'rejected',t:'已驳回'}]" :key="tab.v" :class="{active:expenseStatusFilter===tab.v}" @click="expenseStatusFilter=tab.v">{{tab.t}}</button></div>
+      <label v-if="viewMode==='expense'" class="badge info no-dot" style="cursor:pointer"><input v-model="includeExpenseProof" type="checkbox" style="margin-right:5px"/>导出费用凭证图片</label>
       <span class="spacer"/>
       <button class="btn secondary" @click="exportBatch"><Icon name="download" :size="15"/>导出批次明细</button>
       <button v-if="can('manageAgents')" class="btn secondary" @click="recalculate"><Icon name="history" :size="15"/>重新核算</button>

@@ -146,3 +146,22 @@ test('company review can open complete owner audit details', async () => {
   assert.ok(view.includes('ownerMediaItems'))
   assert.ok(view.includes('审核提示'))
 })
+
+test('image fields remain optional in every image-bearing export', async () => {
+  const owners = await readFile(new URL('../src/views/OwnersView.vue', import.meta.url), 'utf8')
+  const expenses = await readFile(new URL('../src/views/ExpensesView.vue', import.meta.url), 'utf8')
+  const reports = await readFile(new URL('../src/views/ReportsView.vue', import.meta.url), 'utf8')
+  const settlement = await readFile(new URL('../src/views/SettlementView.vue', import.meta.url), 'utf8')
+  const shopFields = createShopExportFields()
+
+  assert.ok(owners.includes("key:'idCardFront'"))
+  assert.ok(owners.includes("key:'bankCardPhoto'"))
+  assert.ok(owners.includes("key:'shopCloseProof'"))
+  assert.equal(shopFields.find(field => field.key === 'openProof')?.selected, false)
+  assert.equal(shopFields.find(field => field.key === 'closeProof')?.selected, false)
+  assert.ok(expenses.includes("label:'费用凭证图片',selected:false"))
+  assert.ok(reports.includes('图片导出字段（可选）'))
+  assert.ok(reports.includes('imageSelections[field.key]'))
+  assert.ok(settlement.includes('includeExpenseProof'))
+  assert.ok(settlement.includes('导出费用凭证图片'))
+})

@@ -54,8 +54,8 @@ const shopExportFieldOptions: Array<Omit<ShopExportFieldOption, 'selected' | 'de
   { key: 'openingFee', label: '开店费' },
   { key: 'icNumber', label: 'IC 卡号' },
   { key: 'bankAccount', label: '银行卡号' },
-  { key: 'openProof', label: '开店截图' },
-  { key: 'closeProof', label: '封店截图' },
+  { key: 'openProof', label: '开店成功截图' },
+  { key: 'closeProof', label: '关店/封店截图' },
   { key: 'trafficCardNumber', label: '流量卡号码' },
   { key: 'trafficCardExpiryDate', label: '流量卡到期续费日期' },
 ]

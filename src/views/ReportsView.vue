@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import Icon from '@/components/Icon.vue'
 import { agentName, companyName, ownerName, shopName, state, visibleAgents, visibleCompanies, visibleExpenses, visibleOwners, visibleRules, visibleShops } from '@/store'
 import { maskAccount, money } from '@/utils/format'
@@ -20,20 +20,52 @@ const reports:{id:ReportType;title:string;desc:string;icon:string}[]=[
   {id:'expenses',title:'垫付杂费',desc:'按公司、店铺、月份筛选报销明细',icon:'receipt'},
   {id:'agents',title:'代理费用',desc:'代理层级、承接公司与店铺规模',icon:'network'},
 ]
-const headers=computed(()=>{
+interface ImageReportField { key: string; label: string }
+const imageSelections = reactive<Record<string, boolean>>({})
+const imageFields = computed<ImageReportField[]>(() => {
+  if (type.value === 'shops') return [
+    { key: 'openProof', label: '开店成功截图' },
+    { key: 'closeProof', label: '关店/封店截图' },
+  ]
+  if (type.value === 'owners') return [
+    { key: 'idCardFront', label: '身份证正面图片' },
+    { key: 'idCardBack', label: '身份证反面图片' },
+    { key: 'bankCardPhoto', label: '银行卡正面图片' },
+    { key: 'bankCardBack', label: '银行卡反面图片' },
+    { key: 'shopOpenProof', label: '开店成功截图' },
+    { key: 'shopCloseProof', label: '关店/封店截图' },
+  ]
+  if (type.value === 'expenses') return [{ key: 'attachment', label: '费用凭证图片' }]
+  return []
+})
+const selectedImageFields = computed(() => imageFields.value.filter(field => imageSelections[field.key]))
+const baseHeaders = computed(() => {
   if(type.value==='shops')return ['店铺编号','店铺名称','公司','代理','人头','地区','模式','月租','状态','开业日','关店日']
   if(type.value==='owners')return ['姓名','电话','邮箱','公司','代理','状态','银行','银行账号（脱敏）']
   if(type.value==='settlement')return ['月份','店铺编号','店铺','人头','代理','公司','模式','店租','杂费','应结合计','核算说明']
-  if(type.value==='expenses')return ['月份','店铺','公司','垫付代理','日期','用途','金额','币种','凭证','状态']
+  if(type.value==='expenses')return ['月份','店铺','公司','垫付代理','日期','用途','金额','币种','凭证状态','状态']
   return ['代理名称','层级','类型','联系人','承接公司','名下店铺','存活店铺','人头数']
 })
-const rows=computed<(string|number)[][]>(()=>{
+const baseRows = computed<(string|number)[][]>(() => {
   if(type.value==='shops')return visibleShops.value.filter(x=>companyFilter.value==='all'||x.companyId===companyFilter.value).map(shop=>[shop.code,shop.name,companyName(shop.companyId),agentName(shop.agentId),ownerName(shop.ownerId),shop.region,shop.mode==='head_fee'?'砍头':'按月',shop.monthlyRent,shop.status,shop.openDate,shop.closeDate||''])
   if(type.value==='owners')return visibleOwners.value.filter(x=>companyFilter.value==='all'||x.companyId===companyFilter.value).map(owner=>[owner.name,owner.phone,owner.email,companyName(owner.companyId),agentName(owner.agentId),owner.status,owner.bankName,maskAccount(owner.bankAccount)])
   if(type.value==='settlement')return state.settlementDetails.filter(detail=>visibleShops.value.some(shop=>shop.id===detail.shopId)&&(companyFilter.value==='all'||detail.companyId===companyFilter.value)).map(detail=>[detail.batchId,state.shops.find(s=>s.id===detail.shopId)?.code||'',shopName(detail.shopId),ownerName(detail.ownerId),agentName(detail.agentId),companyName(detail.companyId),detail.mode==='head_fee'?'砍头':'按月',detail.rent,detail.expense,detail.rent+detail.expense,detail.reason])
-  if(type.value==='expenses')return visibleExpenses.value.filter(x=>companyFilter.value==='all'||x.companyId===companyFilter.value).map(item=>[item.expenseMonth,shopName(item.shopId),companyName(item.companyId),agentName(item.advanceAgentId),item.expenseDate,item.purpose,item.amount,item.currency,item.attachment,item.status])
+  if(type.value==='expenses')return visibleExpenses.value.filter(x=>companyFilter.value==='all'||x.companyId===companyFilter.value).map(item=>[item.expenseMonth,shopName(item.shopId),companyName(item.companyId),agentName(item.advanceAgentId),item.expenseDate,item.purpose,item.amount,item.currency,item.attachment?'已上传':'无',item.status==='pending'?'待确认':item.status==='settled'?'已结清':'已驳回'])
   return visibleAgents.value.map(agent=>[agent.name,agent.level,agent.agentType==='top'?'顶级代理':'子代理',agent.contact,agent.companyIds.map(companyName).join('、'),visibleShops.value.filter(shop=>shop.agentId===agent.id).length,visibleShops.value.filter(shop=>shop.agentId===agent.id&&shop.status!=='closed').length,visibleOwners.value.filter(owner=>owner.agentId===agent.id).length])
 })
+const imageRows = computed<(string|number)[][]>(() => {
+  if (!selectedImageFields.value.length) return baseRows.value.map(() => [])
+  if (type.value === 'shops') return visibleShops.value.filter(x=>companyFilter.value==='all'||x.companyId===companyFilter.value).map(shop => selectedImageFields.value.map(field => {
+    const owner=visibleOwners.value.find(item=>item.id===shop.ownerId)
+    if (field.key === 'openProof') return shop.openProof || owner?.shopOpenProof || ''
+    return shop.closeProof || owner?.shopCloseProof || ''
+  }))
+  if (type.value === 'owners') return visibleOwners.value.filter(x=>companyFilter.value==='all'||x.companyId===companyFilter.value).map(owner => selectedImageFields.value.map(field => String((owner as unknown as Record<string, unknown>)[field.key] || '')))
+  if (type.value === 'expenses') return visibleExpenses.value.filter(x=>companyFilter.value==='all'||x.companyId===companyFilter.value).map(item => selectedImageFields.value.map(field => field.key === 'attachment' ? (item.attachment || '') : ''))
+  return baseRows.value.map(() => [])
+})
+const headers=computed(()=>[...baseHeaders.value,...selectedImageFields.value.map(field=>field.label)])
+const rows=computed<(string|number)[][]>(()=>baseRows.value.map((row,index)=>[...row,...(imageRows.value[index] || [])]))
 function exportReport(){
   const actualDelimiter=delimiter.value==='tab'?'\t':delimiter.value
   downloadRows(type.value+'-'+new Date().toISOString().slice(0,10),headers.value,rows.value,format.value,{delimiter:actualDelimiter,header:hasHeader.value,encoding:'utf-8'})
@@ -52,6 +84,10 @@ function exportReport(){
         <div class="field"><label>结束日期</label><input v-model="to" class="input" type="date"/></div>
         <div class="field"><label>文本选项</label><label class="badge info no-dot" style="justify-content:center;height:38px"><input v-model="hasHeader" type="checkbox" style="margin-right:6px"/>包含表头</label></div>
       </div>
+      <section v-if="imageFields.length" style="margin-top:16px">
+        <div class="card-head" style="margin-bottom:10px"><div><h3>图片导出字段（可选）</h3><p>每张图片单独控制是否导出，默认全部不选，勾选后会导出图片地址或压缩图片数据。</p></div><Icon name="file" :size="18"/></div>
+        <div class="export-field-grid"><label v-for="field in imageFields" :key="field.key" class="export-field" :class="{selected:imageSelections[field.key]}"><input v-model="imageSelections[field.key]" type="checkbox"/><span>{{field.label}}</span><b>图片</b></label></div>
+      </section>
       <div class="callout info" style="margin-top:15px"><Icon name="shield" :size="17"/><div><strong>默认脱敏</strong><p>密码完全隐藏；银行卡和身份证部分隐藏；人名和电话保持正常，便于业务核对。</p></div></div>
     </article>
     <article class="card card-pad"><div class="card-head"><div><h3>导出预览 · {{ reports.find(r=>r.id===type)?.title }}</h3><p>共 {{ rows.length }} 行，{{ headers.length }} 列</p></div><span class="badge info no-dot">{{ format==='csv'?'Excel 兼容 CSV':'TXT' }}</span></div><div class="table-wrap" style="box-shadow:none;max-height:430px;overflow:auto"><table class="data-table"><thead><tr><th v-for="header in headers" :key="header">{{header}}</th></tr></thead><tbody><tr v-for="(row,index) in rows.slice(0,30)" :key="index"><td v-for="(cell,col) in row" :key="col">{{cell}}</td></tr><tr v-if="!rows.length"><td :colspan="headers.length"><div class="table-empty">没有可导出的数据</div></td></tr></tbody></table></div></article>

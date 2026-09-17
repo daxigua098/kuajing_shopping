@@ -76,8 +76,8 @@ function exportShopValue(shop:Shop,key:ShopExportFieldKey):string|number {
   if(key==='openingFee')return shop.openingFee||0
   if(key==='icNumber')return owner?.icNumber||''
   if(key==='bankAccount')return canViewFullSensitive.value?(owner?.bankAccount||''):maskAccount(owner?.bankAccount||'')
-  if(key==='openProof')return (shop.openProof||owner?.shopOpenProof)?'已上传':'未上传'
-  if(key==='closeProof')return (shop.closeProof||owner?.shopCloseProof)?'已上传':'未上传'
+  if(key==='openProof')return shop.openProof||owner?.shopOpenProof||''
+  if(key==='closeProof')return shop.closeProof||owner?.shopCloseProof||''
   if(key==='trafficCardNumber')return shop.trafficCardNumber||'未配置'
   return shop.trafficCardExpiryDate||'未设置'
 }

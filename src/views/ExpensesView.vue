@@ -13,10 +13,15 @@ const monthFilter=ref('2026-08')
 const search=ref('')
 const modalOpen=ref(false)
 const detailOpen=ref(false)
+const exportOpen=ref(false)
 const editingId=ref<string|null>(null)
 const selected=ref<ShopExpense|null>(null)
 const preview=ref<{label:string;url:string}|null>(null)
 const proofDraft=ref('')
+type ExpenseExportFieldKey='id'|'expenseMonth'|'shop'|'company'|'advanceAgent'|'purpose'|'amount'|'currency'|'attachmentStatus'|'status'|'remark'|'attachment'
+const expenseExportFields=reactive<{key:ExpenseExportFieldKey;label:string;selected:boolean;image?:boolean}[]>([
+  {key:'id',label:'杂费ID',selected:true},{key:'expenseMonth',label:'月份',selected:true},{key:'shop',label:'店铺',selected:true},{key:'company',label:'公司',selected:true},{key:'advanceAgent',label:'垫付代理',selected:true},{key:'purpose',label:'用途',selected:true},{key:'amount',label:'金额',selected:true},{key:'currency',label:'币种',selected:true},{key:'attachmentStatus',label:'凭证状态',selected:true},{key:'status',label:'状态',selected:true},{key:'remark',label:'备注',selected:true},{key:'attachment',label:'费用凭证图片',selected:false,image:true},
+])
 const form=reactive<ShopExpense>({id:'',shopId:'',companyId:'',advanceAgentId:'',expenseDate:'',expenseMonth:'',purpose:'',amount:0,currency:'MYR',attachment:'',status:'pending',remark:''})
 const filtered=computed(()=>visibleExpenses.value.filter(item=>{
   const k=search.value.trim().toLowerCase()
@@ -31,7 +36,11 @@ function selectShop(){const shop=visibleShops.value.find(s=>s.id===form.shopId);
 function submit(){if(!form.shopId||!form.purpose||!form.amount)return;saveExpense({...form,expenseMonth:form.expenseDate.slice(0,7)});modalOpen.value=false}
 function saveProof(){if(!selected.value||!proofDraft.value){window.alert('请先上传费用凭证截图');return};saveExpense({...selected.value,attachment:proofDraft.value});detailOpen.value=false}
 function remove(item:ShopExpense){if(window.confirm('确定删除这笔杂费吗？已支付数据正式环境应冲正而非物理删除。'))deleteExpense(item.id)}
-function exportExpenses(){downloadRows('垫付杂费-'+monthFilter.value,['杂费ID','月份','店铺','公司','垫付代理','用途','金额','币种','凭证','状态','备注'],filtered.value.map(item=>[item.id,item.expenseMonth,shopName(item.shopId),state.companies.find(c=>c.id===item.companyId)?.name || '',agentName(item.advanceAgentId),item.purpose,item.amount,item.currency,isImageAttachment(item.attachment)?'已上传截图':item.attachment?'历史凭证文件':'无凭证',item.status==='pending'?'待确认':item.status==='settled'?'已结清':'已驳回',item.remark]),'csv')}
+function expenseExportValue(item:ShopExpense,key:ExpenseExportFieldKey){if(key==='id')return item.id;if(key==='expenseMonth')return item.expenseMonth;if(key==='shop')return shopName(item.shopId);if(key==='company')return state.companies.find(c=>c.id===item.companyId)?.name||'';if(key==='advanceAgent')return agentName(item.advanceAgentId);if(key==='purpose')return item.purpose;if(key==='amount')return item.amount;if(key==='currency')return item.currency;if(key==='attachmentStatus')return isImageAttachment(item.attachment)?'已上传截图':item.attachment?'历史凭证文件':'无凭证';if(key==='status')return item.status==='pending'?'待确认':item.status==='settled'?'已结清':'已驳回';if(key==='attachment')return item.attachment||'';return item.remark}
+function openExpenseExport(){exportOpen.value=true}
+function selectAllExpenseExportFields(){expenseExportFields.forEach(field=>field.selected=true)}
+function resetExpenseExportFields(){expenseExportFields.forEach(field=>field.selected=!field.image)}
+function exportExpenses(){const fields=expenseExportFields.filter(field=>field.selected);if(!fields.length){window.alert('请至少选择一个导出字段');return};downloadRows('垫付杂费-'+monthFilter.value,fields.map(field=>field.label),filtered.value.map(item=>fields.map(field=>expenseExportValue(item,field.key))),'csv');exportOpen.value=false}
 </script>
 <template>
   <div>
@@ -40,7 +49,7 @@ function exportExpenses(){downloadRows('垫付杂费-'+monthFilter.value,['杂�
       <input v-model="monthFilter" class="input" type="month" style="width:150px"/>
       <select v-model="statusFilter" class="select" style="width:130px"><option value="all">全部状态</option><option value="pending">待确认</option><option value="settled">已结清</option><option value="rejected">已驳回</option></select>
       <span class="spacer"/>
-      <button class="btn secondary" @click="exportExpenses"><Icon name="download" :size="15"/>导出杂费表</button>
+      <button class="btn secondary" @click="openExpenseExport"><Icon name="download" :size="15"/>导出杂费表</button>
       <button v-if="can('manageExpenses')" class="btn primary" @click="openCreate"><Icon name="plus" :size="15"/>录入垫付杂费</button>
     </div>
     <section class="stats-grid">
@@ -68,6 +77,14 @@ function exportExpenses(){downloadRows('垫付杂费-'+monthFilter.value,['杂�
         <div class="field full"><label>备注</label><textarea v-model="form.remark" class="textarea" placeholder="补充凭证说明、复核意见等"/></div>
       </div>
       <template #footer><button class="btn secondary" @click="modalOpen=false">取消</button><button class="btn primary" @click="submit"><Icon name="check" :size="15"/>保存杂费</button></template>
+    </Modal>
+
+    <Modal :open="exportOpen" title="选择杂费导出字段" width="820px" @close="exportOpen=false">
+      <template #subtitle><p>费用凭证图片为独立可选字段，默认不导出；其他杂费字段默认导出。</p></template>
+      <div class="row between center" style="margin-bottom:12px"><span class="hint">已选择 {{ expenseExportFields.filter(field=>field.selected).length }} 个字段</span><div class="row" style="gap:7px"><button class="btn ghost small" @click="selectAllExpenseExportFields">全选</button><button class="btn secondary small" @click="resetExpenseExportFields">恢复默认</button></div></div>
+      <div class="export-field-grid"><label v-for="field in expenseExportFields" :key="field.key" class="export-field" :class="{selected:field.selected}"><input v-model="field.selected" type="checkbox"/><span>{{field.label}}</span><b v-if="field.image">图片可选</b><b v-else>默认</b></label></div>
+      <div class="callout info" style="margin-top:14px"><Icon name="shield" :size="17"/><div><strong>图片字段说明</strong><p>选择“费用凭证图片”后会导出图片地址或压缩图片数据，文件可能较大，请按需勾选。</p></div></div>
+      <template #footer><button class="btn secondary" @click="exportOpen=false">取消</button><button class="btn primary" @click="exportExpenses"><Icon name="download" :size="15"/>导出已选字段</button></template>
     </Modal>
 
     <Teleport to="body"><div v-if="preview" class="media-lightbox" @click.self="preview=null"><div class="media-lightbox-panel"><div class="media-lightbox-head"><strong>{{ preview.label }}</strong><button class="icon-btn" @click="preview=null"><Icon name="x"/></button></div><img :src="preview.url" :alt="preview.label"/></div></div></Teleport>
