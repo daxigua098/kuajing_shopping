@@ -196,6 +196,8 @@ test('protection period management and shop selection are wired into the UI', as
   assert.ok(shops.includes('protectionPeriodMonths'))
   assert.ok(settlement.includes('showProtectionPeriod'))
   assert.ok(settlement.includes('店铺保护期'))
+  assert.ok(settlement.includes('<th>店铺保护期</th>'))
+  assert.ok(settlement.includes("'店铺保护期'"))
   assert.ok(router.includes("name: 'protection-periods'"))
   assert.ok(shell.includes("label: '保护期'"))
 })
