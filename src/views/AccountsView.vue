@@ -2,7 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import Icon from '@/components/Icon.vue'
 import Modal from '@/components/Modal.vue'
-import { currentUser, deleteAccount, resetAccountPassword, saveAccount, saveAgent, setAccountStatus, state, visibleAccounts, visibleAgents, visibleCompanies } from '@/store'
+import { currentUser, deleteAccount, saveAccount, saveAgent, setAccountStatus, state, visibleAccounts, visibleAgents, visibleCompanies } from '@/store'
 import type { AccountStatus, Agent, Role, UserAccount } from '@/types'
 
 const search=ref('')
@@ -10,11 +10,9 @@ const roleFilter=ref<'all'|Role>('all')
 const statusFilter=ref<'all'|AccountStatus>('all')
 const companyFilter=ref('all')
 const modalOpen=ref(false)
-const resetOpen=ref(false)
-const resetTarget=ref<UserAccount|null>(null)
-const resetPassword=ref('Welcome@123')
 const form=reactive({id:'',name:'',username:'',password:'Welcome@123',role:'company' as Role,topAgentId:'',agentId:'',companyId:'',language:'zh' as UserAccount['language'],theme:2 as UserAccount['theme']})
 const selectedCompanyIds=ref<string[]>([])
+const editingAccount=computed(()=>state.accounts.find(account=>account.id===form.id)||null)
 const roleOptions=computed(()=>currentUser.value?.role==='platform'?[{value:'company',label:'公司账号'},{value:'top_agent',label:'顶级代理账号'},{value:'sub_agent',label:'子代理账号'}]:[{value:'sub_agent',label:'子代理账号'}])
 const topAgents=computed(()=>visibleAgents.value.filter(agent=>agent.agentType==='top'))
 const availableAgents=computed(()=>{
@@ -38,6 +36,7 @@ function companyName(id:string){return visibleCompanies.value.find(item=>item.id
 function agentName(id:string){return state.agents.find(item=>item.id===id)?.name||id}
 function roleLabel(role:Role){return {platform:'平台管理员',company:'公司负责人',top_agent:'顶级代理',sub_agent:'子代理'}[role]}
 function hasAccount(role:Role,companyId='',agentId=''){return state.accounts.some(account=>account.role===role&&account.companyId===companyId&&account.agentId===agentId)}
+function openEdit(account:UserAccount){form.id=account.id;form.name=account.name;form.username=account.username;form.password=account.password;form.role=account.role;form.topAgentId=account.role==='sub_agent'&&account.agentId?state.agents.find(agent=>agent.id===account.agentId)?.parentId||'':account.agentId||'';form.agentId=account.agentId||'';form.companyId=account.companyId||'';form.language=account.language||state.systemSettings.defaultLanguage;form.theme=account.theme||state.systemSettings.defaultTheme;const agent=account.agentId?state.agents.find(item=>item.id===account.agentId):null;selectedCompanyIds.value=agent?[...agent.companyIds]:[];modalOpen.value=true}
 function openCreate(){form.id='u'+Date.now();form.name='';form.username='';form.password='Welcome@123';form.role=currentUser.value?.role==='platform'?'company':'sub_agent';form.topAgentId=currentUser.value?.agentId||topAgents.value[0]?.id||'';form.agentId=availableAgents.value.find(agent=>!hasAccount('sub_agent','',agent.id))?.id||'';form.companyId=visibleCompanies.value.find(company=>!hasAccount('company',company.id,''))?.id||'';form.language=state.systemSettings.defaultLanguage;form.theme=state.systemSettings.defaultTheme;selectedCompanyIds.value=[];modalOpen.value=true}
 function syncRole(){if(form.role==='company'){form.name=companyName(form.companyId)}else if(form.role==='top_agent'){const agent=state.agents.find(item=>item.id===form.topAgentId);form.name=agent?.name||'';selectedCompanyIds.value=agent?[...agent.companyIds]:[]}else{form.name=form.agentId?agentName(form.agentId):''}}
 function submit(){
@@ -55,14 +54,13 @@ function submit(){
   if(form.role==='company'&&!form.companyId){window.alert('请选择公司');return}
   if(form.role!=='company'&&!agentId){window.alert('请选择代理');return}
   const bindingName=form.role==='company'?companyName(form.companyId):agentName(agentId)
+  if(editingAccount.value){if(form.role==='top_agent'&&form.topAgentId&&form.topAgentId!=='__new__'){const agent=state.agents.find(item=>item.id===form.topAgentId);if(agent)saveAgent({...agent,companyIds:selectedCompanyIds.value})};const updated:UserAccount={...editingAccount.value,name:form.name.trim(),username:form.username.trim(),password:form.password,language:form.language,theme:form.theme,initials:(form.name.trim()||editingAccount.value.name).slice(0,1).toUpperCase()};const result=saveAccount(updated);if(!result.ok){window.alert(result.reason);return};modalOpen.value=false;return}
   const account:UserAccount={id:form.id,name:form.name.trim()||bindingName,username:form.username.trim(),password:form.password,role:form.role,companyId:form.role==='company'?form.companyId:undefined,agentId:form.role==='company'?undefined:agentId,roleLabel:roleLabel(form.role),initials:(form.name.trim()||bindingName).slice(0,1).toUpperCase(),language:form.language,theme:form.theme,status:'active',mustChangePassword:true,failedLoginCount:0,lockedUntil:null,lastLoginAt:null,createdBy:currentUser.value?.name||'系统',createdAt:new Date().toISOString().slice(0,16).replace('T',' '),updatedAt:''}
   const result=saveAccount(account)
   if(!result.ok){window.alert(result.reason);return}
   modalOpen.value=false
 }
 function toggleStatus(account:UserAccount){const next:AccountStatus=account.status==='active'?'disabled':'active';const result=setAccountStatus(account.id,next);if(!result.ok)window.alert(result.reason)}
-function openReset(account:UserAccount){resetTarget.value=account;resetPassword.value='Welcome@123';resetOpen.value=true}
-function confirmReset(){if(!resetTarget.value)return;const result=resetAccountPassword(resetTarget.value.id,resetPassword.value);if(!result.ok){window.alert(result.reason);return};resetOpen.value=false}
 function remove(account:UserAccount){if(!window.confirm('确定删除账号「'+account.name+'」吗？只删除登录凭据，业务关系和历史记录会保留。'))return;const result=deleteAccount(account.id);if(!result.ok)window.alert(result.reason)}
 </script>
 <template>
@@ -90,28 +88,30 @@ function remove(account:UserAccount){if(!window.confirm('确定删除账号「'+
         <td><span class="badge" :class="statusMeta[account.status].cls">{{statusMeta[account.status].label}}</span></td>
         <td>{{account.mustChangePassword?'需要':'否'}}</td><td>{{account.lastLoginAt||'从未登录'}}</td>
         <td>{{account.createdBy}}<div class="secondary-line">{{account.createdAt}}</div></td>
-        <td><div class="row-actions"><button class="row-action" title="重置密码" @click="openReset(account)"><Icon name="shield" :size="15"/></button><button v-if="account.id!==currentUser?.id" class="row-action" :title="account.status==='active'?'停用账号':'启用账号'" @click="toggleStatus(account)"><Icon :name="account.status==='active'?'x':'check'" :size="15"/></button><button v-if="account.id!==currentUser?.id" class="row-action danger" title="删除账号" @click="remove(account)"><Icon name="trash" :size="15"/></button></div></td>
+        <td><div class="row-actions"><button class="row-action" title="编辑账号" @click="openEdit(account)"><Icon name="edit" :size="15"/></button><button v-if="account.id!==currentUser?.id" class="row-action" :title="account.status==='active'?'停用账号':'启用账号'" @click="toggleStatus(account)"><Icon :name="account.status==='active'?'x':'check'" :size="15"/></button><button v-if="account.id!==currentUser?.id" class="row-action danger" title="删除账号" @click="remove(account)"><Icon name="trash" :size="15"/></button></div></td>
       </tr>
       <tr v-if="!filtered.length"><td colspan="8"><div class="table-empty"><Icon name="users" :size="30"/><div>没有匹配的账号</div></div></td></tr>
     </tbody></table></div>
 
-    <Modal :open="modalOpen" :title="currentUser?.role==='platform'?'新增平台账号':'新增子代理账号'" width="760px" @close="modalOpen=false">
+    <Modal :open="modalOpen" :title="editingAccount?'编辑账号':(currentUser?.role==='platform'?'新增平台账号':'新增子代理账号')" width="760px" @close="modalOpen=false">
       <template #subtitle><p>新账号首次登录时必须修改密码；业务关系和历史记录不会因账号停用或删除而丢失。</p></template>
       <div class="form-grid">
-        <div v-if="currentUser?.role==='platform'" class="field"><label>账号类型</label><select v-model="form.role" class="select" @change="syncRole"><option v-for="option in roleOptions" :key="option.value" :value="option.value">{{option.label}}</option></select></div>
-        <div v-if="form.role==='company'" class="field"><label>绑定公司</label><select v-model="form.companyId" class="select" @change="syncRole"><option v-for="company in visibleCompanies" :key="company.id" :value="company.id" :disabled="hasAccount('company',company.id,'')">{{company.name}}{{hasAccount('company',company.id,'')?'（已有账号）':''}}</option></select></div>
-        <div v-if="form.role==='top_agent'&&currentUser?.role==='platform'" class="field"><label>绑定顶级代理</label><select v-model="form.topAgentId" class="select" @change="syncRole"><option value="__new__">新建顶级代理并开号</option><option v-for="agent in topAgents" :key="agent.id" :value="agent.id" :disabled="hasAccount('top_agent','',agent.id)">{{agent.name}}{{hasAccount('top_agent','',agent.id)?'（已有账号）':''}}</option></select></div>
+        <div v-if="currentUser?.role==='platform'" class="field"><label>账号类型</label><select v-model="form.role" class="select" :disabled="Boolean(editingAccount)" @change="syncRole"><option v-for="option in roleOptions" :key="option.value" :value="option.value">{{option.label}}</option></select></div>
+        <div v-if="form.role==='company'" class="field"><label>绑定公司</label><select v-model="form.companyId" class="select" :disabled="Boolean(editingAccount)" @change="syncRole"><option v-for="company in visibleCompanies" :key="company.id" :value="company.id" :disabled="hasAccount('company',company.id,'')">{{company.name}}{{hasAccount('company',company.id,'')?'（已有账号）':''}}</option></select></div>
+        <div v-if="form.role==='top_agent'&&currentUser?.role==='platform'" class="field"><label>绑定顶级代理</label><select v-model="form.topAgentId" class="select" :disabled="Boolean(editingAccount)" @change="syncRole"><option value="__new__">新建顶级代理并开号</option><option v-for="agent in topAgents" :key="agent.id" :value="agent.id" :disabled="hasAccount('top_agent','',agent.id)">{{agent.name}}{{hasAccount('top_agent','',agent.id)?'（已有账号）':''}}</option></select></div>
         <div v-if="form.role==='sub_agent'&&currentUser?.role==='platform'" class="field"><label>所属顶级代理</label><select v-model="form.topAgentId" class="select" @change="form.agentId='';syncRole"><option v-for="agent in topAgents" :key="agent.id" :value="agent.id">{{agent.name}}</option></select></div>
-        <div v-if="form.role==='sub_agent'" class="field"><label>绑定子代理</label><select v-model="form.agentId" class="select" @change="syncRole"><option v-for="agent in availableAgents" :key="agent.id" :value="agent.id" :disabled="hasAccount('sub_agent','',agent.id)">{{agent.name}} · 层级 {{agent.level}}{{hasAccount('sub_agent','',agent.id)?'（已有账号）':''}}</option></select></div>
+        <div v-if="form.role==='sub_agent'" class="field"><label>绑定子代理</label><select v-model="form.agentId" class="select" :disabled="Boolean(editingAccount)" @change="syncRole"><option v-for="agent in availableAgents" :key="agent.id" :value="agent.id" :disabled="hasAccount('sub_agent','',agent.id)">{{agent.name}} · 层级 {{agent.level}}{{hasAccount('sub_agent','',agent.id)?'（已有账号）':''}}</option></select></div>
         <div class="field"><label>账号名称 <b>*</b></label><input v-model="form.name" class="input"/></div>
         <div class="field"><label>登录账号 <b>*</b></label><input v-model="form.username" class="input" autocomplete="off"/></div>
-        <div class="field"><label>初始密码 <b>*</b></label><input v-model="form.password" class="input" type="text"/><span class="hint">首次登录后必须修改。</span></div>
+        <div class="field"><label>{{editingAccount?'当前密码':'初始密码'}} <b>*</b></label><input v-model="form.password" class="input" type="text"/><span class="hint">{{editingAccount?'修改并保存后，新密码立即生效。':'首次登录后必须修改。'}}</span></div>
         <div class="field"><label>默认语言</label><select v-model="form.language" class="select"><option value="zh">简体中文</option><option value="en">English</option><option value="ms">Bahasa Melayu</option><option value="th">ไทย</option><option value="vi">Tiếng Việt</option></select></div>
+        <div class="field"><label>默认视觉主题</label><select v-model.number="form.theme" class="select"><option :value="1">指挥舱</option><option :value="2">海岛工作台</option><option :value="3">瑞士财务网格</option><option :value="4">代理关系图谱</option></select></div>
+        <div v-if="editingAccount" class="field"><label>账号状态</label><div class="readonly-field">{{statusMeta[editingAccount.status].label}}</div></div>
+        <div v-if="editingAccount" class="field"><label>创建人 / 时间</label><div class="readonly-field">{{editingAccount.createdBy}} · {{editingAccount.createdAt}}</div></div>
         <div class="field full" v-if="form.role==='top_agent'"><label>关联公司（可不选）</label><div class="row" style="gap:9px;flex-wrap:wrap"><label v-for="company in visibleCompanies" :key="company.id" class="badge no-dot" style="padding:7px 9px"><input v-model="selectedCompanyIds" type="checkbox" :value="company.id" style="margin-right:3px"/>{{company.name}}</label></div><span class="hint">不选择时，顶级代理登录后可在“合作公司”自行选择。</span></div>
       </div>
-      <template #footer><button class="btn secondary" @click="modalOpen=false">取消</button><button class="btn primary" @click="submit"><Icon name="check" :size="15"/>创建账号</button></template>
+      <template #footer><button class="btn secondary" @click="modalOpen=false">取消</button><button class="btn primary" @click="submit"><Icon name="check" :size="15"/>{{editingAccount?'保存账号':'创建账号'}}</button></template>
     </Modal>
 
-    <Modal :open="resetOpen" title="重置账号密码" width="520px" @close="resetOpen=false"><template #subtitle><p>{{resetTarget?.name}} · {{resetTarget?.username}}</p></template><div class="field"><label>新的初始密码</label><input v-model="resetPassword" class="input" type="text"/><span class="hint">重置后账号首次登录必须修改密码。</span></div><template #footer><button class="btn secondary" @click="resetOpen=false">取消</button><button class="btn primary" @click="confirmReset">确认重置</button></template></Modal>
   </div>
 </template>
