@@ -1,9 +1,9 @@
 import { computed, reactive, watch } from 'vue'
 import { seedState, users } from '@/data/seed'
-import type { Agent, AppState, AuditLog, Company, CompanySettlementConfig, CompanySettlementTemplate, CompanyShopType, DistributionRule, OpenTask, Owner, OwnerBusinessStatus, OwnerSubmission, OwnerSubmissionStatus, SettlementBatch, SettlementDetail, Shop, ShopExpense, ShopType, ThemeId, UserAccount } from '@/types'
+import type { Agent, AppState, AuditLog, Company, CompanySettlementConfig, CompanySettlementTemplate, CompanyShopType, ProtectionPeriodTemplate, DistributionRule, OpenTask, Owner, OwnerBusinessStatus, OwnerSubmission, OwnerSubmissionStatus, SettlementBatch, SettlementDetail, Shop, ShopExpense, ShopType, ThemeId, UserAccount } from '@/types'
 import { calculateRent } from '@/utils/settlement'
 
-const STORAGE_KEY = 'fenflow-state-v11'
+const STORAGE_KEY = 'fenflow-state-v12'
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 
 const load = (): AppState => {
@@ -24,6 +24,7 @@ const load = (): AppState => {
       shops: parsed.shops || fresh.shops,
       companySettlementConfigs: parsed.companySettlementConfigs || fresh.companySettlementConfigs,
       companySettlementTemplates: parsed.companySettlementTemplates || fresh.companySettlementTemplates,
+      protectionPeriods: parsed.protectionPeriods || fresh.protectionPeriods,
       tasks: parsed.tasks || fresh.tasks,
       rules: parsed.rules || fresh.rules,
       expenses: parsed.expenses || fresh.expenses,
@@ -107,6 +108,13 @@ export const visibleShopTypes = computed(() => {
   if (user.role === 'top_agent') return state.companyShopTypes.filter(type => visibleCompanies.value.some(company => company.id === type.companyId))
   return state.companyShopTypes.filter(type => visibleShops.value.some(shop => shop.shopTypeId === type.id))
 })
+export const visibleProtectionPeriods = computed(() => {
+  const user = currentUser.value
+  if (!user) return []
+  if (user.role === 'platform') return state.protectionPeriods
+  if (user.role === 'company') return state.protectionPeriods.filter(period => period.companyId === user.companyId)
+  return []
+})
 export const visibleCompanySettlementTemplates = computed(() => {
   const user = currentUser.value
   if (!user) return []
@@ -177,6 +185,7 @@ export const can = (permission: string) => {
     viewReconciliation: ['platform', 'company', 'top_agent'],
     viewReports: ['platform', 'company', 'top_agent'],
     manageCompanySettlement: ['platform', 'company'],
+    manageProtectionPeriods: ['platform', 'company'],
     manageShopTypes: ['platform', 'company'],
     manageAgents: ['platform', 'top_agent'],
     createTopAgent: ['platform'],
@@ -526,6 +535,30 @@ export function deleteCompanyShopType(id: string) {
   return { ok: true, reason: '' }
 }
 
+export function saveProtectionPeriod(period: ProtectionPeriodTemplate) {
+  const actor = currentUser.value
+  if (!actor || !['platform', 'company'].includes(actor.role)) return { ok: false, reason: '无权管理保护期' }
+  if (actor.role === 'company') period.companyId = actor.companyId || period.companyId
+  if (!period.name.trim()) return { ok: false, reason: '请填写保护期名称' }
+  if (!Number.isFinite(period.months) || period.months <= 0) return { ok: false, reason: '保护期月数必须大于 0' }
+  const index = state.protectionPeriods.findIndex(item => item.id === period.id)
+  const next = clone({ ...period, updatedAt: new Date().toISOString().slice(0, 16).replace('T', ' ') })
+  if (index >= 0) state.protectionPeriods[index] = next
+  else state.protectionPeriods.unshift(next)
+  addAudit(index >= 0 ? '编辑保护期' : '新增保护期', period.name, period.months + ' 个月')
+  return { ok: true, reason: '' }
+}
+export function deleteProtectionPeriod(id: string) {
+  const period = state.protectionPeriods.find(item => item.id === id)
+  const actor = currentUser.value
+  if (!period || !actor) return { ok: false, reason: '保护期不存在' }
+  if (actor.role === 'company' && period.companyId !== actor.companyId) return { ok: false, reason: '无权删除其他公司的保护期' }
+  const used = state.shops.filter(shop => shop.protectionPeriodId === id)
+  if (used.length) return { ok: false, reason: '已有 ' + used.length + ' 家店铺使用该保护期，不能删除；可先停用' }
+  state.protectionPeriods = state.protectionPeriods.filter(item => item.id !== id)
+  addAudit('删除保护期', period.name, period.months + ' 个月')
+  return { ok: true, reason: '' }
+}
 export function saveCompanySettlementTemplate(template: CompanySettlementTemplate) {
   const actor = currentUser.value
   if (!actor || !['platform', 'company'].includes(actor.role)) return { ok: false, reason: '无权新增结算模式分类' }

@@ -9,6 +9,7 @@ import OwnersView from '@/views/OwnersView.vue'
 import SubmissionsView from '@/views/SubmissionsView.vue'
 import ShopsView from '@/views/ShopsView.vue'
 import TrafficCardsView from '@/views/TrafficCardsView.vue'
+import ProtectionPeriodsView from '@/views/ProtectionPeriodsView.vue'
 import ShopTypesView from '@/views/ShopTypesView.vue'
 import TasksView from '@/views/TasksView.vue'
 import RulesView from '@/views/RulesView.vue'
@@ -36,6 +37,7 @@ const router = createRouter({
         { path: 'submissions', name: 'submissions', component: SubmissionsView, meta: { title: '人头提交', subtitle: '顶级代理提交公司，公司审核后安排开店', icon: 'send' } },
         { path: 'shop-types', name: 'shop-types', component: ShopTypesView, meta: { title: '店铺类型', subtitle: '管理公司运营平台，新增店铺时选择使用', icon: 'grid', permission: 'manageShopTypes' } },
         { path: 'shops', name: 'shops', component: ShopsView, meta: { title: '店铺档案', subtitle: '追踪店铺存活、归属和结算模式', icon: 'store' } },
+        { path: 'protection-periods', name: 'protection-periods', component: ProtectionPeriodsView, meta: { title: '保护期', subtitle: '维护公司保护期类型，并在店铺开店时选择使用', icon: 'shield', permission: 'manageProtectionPeriods' } },
         { path: 'traffic-cards', name: 'traffic-cards', component: TrafficCardsView, meta: { title: '流量卡管理', subtitle: '一店一卡，维护流量卡号、每月续费日与到期状态', icon: 'card', permission: 'manageTrafficCards' } },
         { path: 'tasks', name: 'tasks', component: TasksView, meta: { title: '开店任务', subtitle: '发布、承接与追踪开店任务进度', icon: 'briefcase', permission: 'viewTasks' } },
         { path: 'rules', name: 'rules', component: RulesView, meta: { title: '租金与分配规则', subtitle: '规则版本化，保留每个结算月份的历史快照', icon: 'sliders', permission: 'manageAgents' } },

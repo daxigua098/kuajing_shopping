@@ -19,6 +19,7 @@ export type ShopExportFieldKey =
   | 'closeProof'
   | 'trafficCardNumber'
   | 'trafficCardExpiryDate'
+  | 'protectionPeriod'
 
 export interface ShopExportFieldOption {
   key: ShopExportFieldKey
@@ -58,6 +59,7 @@ const shopExportFieldOptions: Array<Omit<ShopExportFieldOption, 'selected' | 'de
   { key: 'closeProof', label: '关店/封店截图' },
   { key: 'trafficCardNumber', label: '流量卡号码' },
   { key: 'trafficCardExpiryDate', label: '流量卡到期续费日期' },
+  { key: 'protectionPeriod', label: '保护期' },
 ]
 
 export const createShopExportFields = (): ShopExportFieldOption[] => shopExportFieldOptions.map(field => ({

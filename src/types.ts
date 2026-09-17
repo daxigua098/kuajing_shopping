@@ -122,7 +122,21 @@ export interface Shop {
   closeProof?: string
   trafficCardNumber?: string
   trafficCardExpiryDate?: string | null
+  protectionPeriodId?: string
+  protectionPeriodName?: string
+  protectionPeriodMonths?: number
   createdAt: string
+}
+
+export interface ProtectionPeriodTemplate {
+  id: string
+  companyId: string
+  name: string
+  months: number
+  status: 'active' | 'disabled'
+  remark: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface CompanySettlementTemplate {
@@ -253,6 +267,7 @@ export interface AppState {
   shops: Shop[]
   companySettlementConfigs: CompanySettlementConfig[]
   companySettlementTemplates: CompanySettlementTemplate[]
+  protectionPeriods: ProtectionPeriodTemplate[]
   tasks: OpenTask[]
   rules: DistributionRule[]
   expenses: ShopExpense[]

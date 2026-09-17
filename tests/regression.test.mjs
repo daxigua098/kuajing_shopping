@@ -4,6 +4,7 @@ import test from 'node:test'
 import { seedState } from '../src/data/seed.ts'
 import { statusAfterCloseDateChange } from '../src/utils/shop.ts'
 import { createShopExportFields, defaultShopExportFieldKeys } from '../src/utils/shopExport.ts'
+import { isShopInProtection, protectionMonthDistance } from '../src/utils/protection.ts'
 import { matchesShopDateRange } from '../src/utils/shopDateFilter.ts'
 import { daysUntilTrafficExpiry, trafficCardStatus } from '../src/utils/trafficCard.ts'
 
@@ -166,4 +167,35 @@ test('image fields remain optional in every image-bearing export', async () => {
   assert.ok(reports.includes('imageSelections[field.key]'))
   assert.ok(settlement.includes('includeExpenseProof'))
   assert.ok(settlement.includes('导出费用凭证图片'))
+})
+
+test('protection periods are configurable and drive monthly settlement', () => {
+  const state = seedState()
+  assert.ok(state.protectionPeriods.length >= 9)
+  assert.ok(state.shops.some(shop => (shop.protectionPeriodMonths || 0) === 0))
+  assert.ok(state.shops.some(shop => (shop.protectionPeriodMonths || 0) > 0))
+  assert.ok(state.settlementBatches.length >= 5)
+
+  const shop = { openDate: '2026-01-15', protectionPeriodMonths: 3 }
+  assert.equal(protectionMonthDistance(shop.openDate, '2026-04'), 3)
+  assert.equal(isShopInProtection(shop, '2026-01'), true)
+  assert.equal(isShopInProtection(shop, '2026-03'), true)
+  assert.equal(isShopInProtection(shop, '2026-04'), false)
+  assert.equal(isShopInProtection({ openDate: '2026-01-15', protectionPeriodMonths: 0 }, '2026-01'), false)
+})
+
+test('protection period management and shop selection are wired into the UI', async () => {
+  const view = await readFile(new URL('../src/views/ProtectionPeriodsView.vue', import.meta.url), 'utf8')
+  const shops = await readFile(new URL('../src/views/ShopsView.vue', import.meta.url), 'utf8')
+  const settlement = await readFile(new URL('../src/views/SettlementView.vue', import.meta.url), 'utf8')
+  const router = await readFile(new URL('../src/router.ts', import.meta.url), 'utf8')
+  const shell = await readFile(new URL('../src/components/AppShell.vue', import.meta.url), 'utf8')
+
+  assert.ok(view.includes('新增保护期类型'))
+  assert.ok(shops.includes('0 保护期'))
+  assert.ok(shops.includes('protectionPeriodMonths'))
+  assert.ok(settlement.includes('showProtectionPeriod'))
+  assert.ok(settlement.includes('店铺保护期'))
+  assert.ok(router.includes("name: 'protection-periods'"))
+  assert.ok(shell.includes("label: '保护期'"))
 })

@@ -1,4 +1,4 @@
-import type { AppState, AuditLog, Agent, Company, CompanySettlementConfig, CompanySettlementTemplate, CompanyShopType, DistributionRule, OpenTask, Owner, OwnerSubmission, SettlementBatch, SettlementDetail, Shop, ShopExpense, ShopType, UserAccount } from '@/types'
+import type { AppState, AuditLog, Agent, Company, CompanySettlementConfig, CompanySettlementTemplate, CompanyShopType, ProtectionPeriodTemplate, DistributionRule, OpenTask, Owner, OwnerSubmission, SettlementBatch, SettlementDetail, Shop, ShopExpense, ShopType, UserAccount } from '@/types'
 
 export const users: UserAccount[] = [
   { id: 'u1', name: '林泽宇', username: 'admin', demoPassword: 'Admin@123456', role: 'platform', roleLabel: '平台管理员', initials: '林', language: 'zh' },
@@ -56,6 +56,22 @@ const companyShopTypes: CompanyShopType[] = companies.flatMap((company, companyI
   createdAt: '2026-01-01',
 })))
 
+const protectionPeriodPresets = [
+  { name: '1个月保护期', months: 1, remark: '新店首月保护' },
+  { name: '3个月保护期', months: 3, remark: '新店前 3 个月保护' },
+  { name: '6个月保护期', months: 6, remark: '新店前 6 个月保护' },
+]
+const protectionPeriods: ProtectionPeriodTemplate[] = companies.flatMap(company => protectionPeriodPresets.map(preset => ({
+  id: 'cpp-' + company.id + '-' + preset.months,
+  companyId: company.id,
+  name: preset.name,
+  months: preset.months,
+  status: 'active',
+  remark: company.name + ' · ' + preset.remark,
+  createdAt: '2026-01-01',
+  updatedAt: '2026-09-01 09:00',
+})))
+
 const owners: Owner[] = ownerNames.map((name, i) => ({
   id: 'o' + (i + 1),
   name,
@@ -106,6 +122,9 @@ const shops: Shop[] = Array.from({ length: 24 }, (_, i) => {
     monthlyRent: type.defaultRent + (i % 4) * 20,
     trafficCardNumber: i % 5 === 0 ? '' : 'MYTC-' + String(8801000 + i),
     trafficCardExpiryDate: i % 5 === 0 ? null : '2026-' + String(9 + (i % 3)).padStart(2, '0') + '-' + String(5 + (i % 20)).padStart(2, '0'),
+    protectionPeriodMonths: i % 6 === 0 ? 1 : i % 4 === 0 ? 3 : i % 9 === 0 ? 6 : 0,
+    protectionPeriodId: (i % 6 === 0 ? 1 : i % 4 === 0 ? 3 : i % 9 === 0 ? 6 : 0) ? 'cpp-' + owner.companyId + '-' + (i % 6 === 0 ? 1 : i % 4 === 0 ? 3 : 6) : '',
+    protectionPeriodName: (i % 6 === 0 ? 1 : i % 4 === 0 ? 3 : i % 9 === 0 ? 6 : 0) ? (i % 6 === 0 ? '1个月保护期' : i % 4 === 0 ? '3个月保护期' : '6个月保护期') : '无保护期',
     createdAt: '2026-01-05',
   }
 })
@@ -264,25 +283,59 @@ const expenses: ShopExpense[] = [
   { id: 'e6', shopId: 's6', companyId: 'c2', advanceAgentId: 'a2', expenseDate: '2026-08-19', expenseMonth: '2026-08', purpose: '产品拍摄', amount: 360, currency: 'MYR', attachment: '拍摄发票.pdf', status: 'pending', remark: '' },
 ]
 
-const settlementBatches: SettlementBatch[] = [
-  { id: 'b202607', month: '2026-07', createdAt: '2026-08-10 08:00', createdBy: '系统调度', status: 'paid', shopCount: 22, rentTotal: 6120, expenseTotal: 95, payableTotal: 6215, ruleVersion: 'v11', confirmedAt: '2026-08-10 10:22', paidAt: '2026-08-12 15:08', note: '已全部支付' },
-  { id: 'b202608', month: '2026-08', createdAt: '2026-09-10 08:00', createdBy: '系统调度', status: 'draft', shopCount: 24, rentTotal: 6860, expenseTotal: 946, payableTotal: 7806, ruleVersion: 'v12', confirmedAt: null, paidAt: null, note: '3 笔杂费待确认' },
-]
-
-const settlementDetails: SettlementDetail[] = shops.map((shop, i) => {
-  const expense = expenses.filter(e => e.shopId === shop.id && e.expenseMonth === '2026-08').reduce((sum, e) => sum + e.amount, 0)
+const settlementMonths = ['2026-08', '2026-07', '2026-06', '2026-05', '2026-04']
+const monthEndText = (month: string) => {
+  const [year, monthNumber] = month.split('-').map(Number)
+  return month + '-' + String(new Date(Date.UTC(year, monthNumber, 0)).getUTCDate()).padStart(2, '0')
+}
+const monthDistance = (openDate: string, targetMonth: string) => {
+  const [openYear, openMonth] = openDate.slice(0, 7).split('-').map(Number)
+  const [targetYear, targetMonthNumber] = targetMonth.split('-').map(Number)
+  return (targetYear - openYear) * 12 + (targetMonthNumber - openMonth)
+}
+const settlementDetails: SettlementDetail[] = settlementMonths.flatMap((month, monthIndex) => shops.map((shop, shopIndex) => {
+  const monthStart = month + '-01'
+  const monthEnd = monthEndText(month)
+  const alive = shop.openDate <= monthEnd && (!shop.closeDate || shop.closeDate >= monthStart)
+  const headFeePaused = shop.mode === 'head_fee' && shop.openDate.slice(0, 7) !== month
+  const expense = expenses.filter(item => item.shopId === shop.id && item.expenseMonth === month).reduce((sum, item) => sum + item.amount, 0)
+  const inProtection = (shop.protectionPeriodMonths || 0) > 0 && monthDistance(shop.openDate, month) >= 0 && monthDistance(shop.openDate, month) < (shop.protectionPeriodMonths || 0)
+  const latestDraft = month === '2026-08'
+  const hasPendingExpense = expenses.some(item => item.shopId === shop.id && item.expenseMonth === month && ['pending', 'rejected'].includes(item.status))
   return {
-    id: 'd' + (i + 1),
-    batchId: 'b202608',
+    id: 'd' + month.replace('-', '') + '-' + shop.id,
+    batchId: 'b' + month.replace('-', ''),
     shopId: shop.id,
     companyId: shop.companyId,
     agentId: shop.agentId,
     ownerId: shop.ownerId,
     mode: shop.mode,
-    rent: shop.status === 'closed' ? 0 : shop.monthlyRent,
+    rent: alive && !headFeePaused ? shop.monthlyRent : 0,
     expense,
-    status: ['pending', 'rejected'].includes(expenses.find(e => e.shopId === shop.id)?.status || '') ? 'draft' : 'confirmed',
-    reason: shop.status === 'closed' ? '8月已关店，不参与本次结算' : shop.mode === 'head_fee' ? '砍头模式，首月已结' : '按存活店铺核算',
+    status: latestDraft ? (hasPendingExpense ? 'draft' : 'confirmed') : 'paid',
+    reason: !alive ? month + ' 无存活天数' : headFeePaused ? '砍头模式，仅开店首月结算' : inProtection ? '保护期内店铺' : '按存活店铺核算',
+  }
+}))
+
+const settlementBatches: SettlementBatch[] = settlementMonths.map((month, index) => {
+  const details = settlementDetails.filter(item => item.batchId === 'b' + month.replace('-', ''))
+  const expenseTotal = details.reduce((sum, item) => sum + item.expense, 0)
+  const rentTotal = details.reduce((sum, item) => sum + item.rent, 0)
+  const isLatest = month === '2026-08'
+  return {
+    id: 'b' + month.replace('-', ''),
+    month,
+    createdAt: isLatest ? '2026-09-10 08:00' : month + '-10 08:00',
+    createdBy: '系统调度',
+    status: isLatest ? 'draft' : 'paid',
+    shopCount: details.filter(item => item.rent > 0 || item.expense > 0).length,
+    rentTotal,
+    expenseTotal,
+    payableTotal: rentTotal + expenseTotal,
+    ruleVersion: 'v' + Math.max(8, 12 - index),
+    confirmedAt: isLatest ? null : month + '-10 10:22',
+    paidAt: isLatest ? null : month + '-12 15:08',
+    note: isLatest ? '月度核算草稿，等待确认' : '已全部支付',
   }
 })
 
@@ -306,6 +359,7 @@ export const seedState = (): AppState => ({
   shops,
   companySettlementConfigs,
   companySettlementTemplates,
+  protectionPeriods,
   tasks,
   rules,
   expenses,

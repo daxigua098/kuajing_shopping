@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import Icon from '@/components/Icon.vue'
 import MediaField from '@/components/MediaField.vue'
 import Modal from '@/components/Modal.vue'
-import { agentName, can, currentUser, deleteShop, ownerName, saveCompanySettlementConfig, visibleCompanySettlementConfigs, visibleCompanySettlementTemplates, visibleShopTypes, saveShop, shopTypeName, setShopStatus, state, visibleAgents, visibleCompanies, visibleOwners, visibleShops } from '@/store'
+import { agentName, can, currentUser, deleteShop, ownerName, saveCompanySettlementConfig, visibleCompanySettlementConfigs, visibleCompanySettlementTemplates, visibleProtectionPeriods, visibleShopTypes, saveShop, shopTypeName, setShopStatus, state, visibleAgents, visibleCompanies, visibleOwners, visibleShops } from '@/store'
 import type { Owner, SettlementMode, Shop, ShopStatus } from '@/types'
 import { maskAccount, money } from '@/utils/format'
 import { downloadRows } from '@/utils/export'
@@ -29,9 +29,10 @@ const preview = ref<{label:string;url:string}|null>(null)
 const selectedTemplateId = ref('')
 const exportOpen = ref(false)
 const exportFields = reactive(createShopExportFields())
-const form = reactive<Shop>({ id:'',code:'',name:'',region:'',companyId:'',ownerId:'',agentId:'',shopTypeId:'st1',status:'operating',openDate:'',closeDate:null,taskId:null,mode:'monthly',monthlyRent:280,openingFee:0,openProof:'',closeProof:'',trafficCardNumber:'',trafficCardExpiryDate:null,createdAt:'' })
+const form = reactive<Shop>({ id:'',code:'',name:'',region:'',companyId:'',ownerId:'',agentId:'',shopTypeId:'st1',status:'operating',openDate:'',closeDate:null,taskId:null,mode:'monthly',monthlyRent:280,openingFee:0,openProof:'',closeProof:'',trafficCardNumber:'',trafficCardExpiryDate:null,protectionPeriodId:'',protectionPeriodName:'无保护期',protectionPeriodMonths:0,createdAt:'' })
 const companyConfigFor=(shopId:string)=>visibleCompanySettlementConfigs.value.find(config=>config.shopId===shopId)
 const selectedTemplate=computed(()=>visibleCompanySettlementTemplates.value.find(template=>template.id===selectedTemplateId.value))
+const selectedProtectionPeriod=computed(()=>visibleProtectionPeriods.value.find(period=>period.id===form.protectionPeriodId))
 const filtered = computed(() => visibleShops.value.filter(shop => {
   const keyword=search.value.trim().toLowerCase()
   const owner=visibleOwners.value.find(item=>item.id===shop.ownerId)
@@ -46,9 +47,10 @@ function modeAmountFor(shop:Shop){const config=companyConfigFor(shop.id);return 
 const availableOwners=computed(()=>currentUser.value?.role==='company'?visibleOwners.value.filter(owner=>state.ownerSubmissions.some(submission=>submission.ownerId===owner.id&&submission.companyId===currentUser.value?.companyId&&submission.shopTypeId===form.shopTypeId&&submission.status==='approved')):visibleOwners.value)
 const canViewFullSensitive=computed(()=>currentUser.value?.role!=='company')
 function mediaItems(shop:Shop,owner?:Owner){return [{label:'开店成功截图',url:shop.openProof||owner?.shopOpenProof||''},{label:'关店/封店截图',url:shop.closeProof||owner?.shopCloseProof||''},{label:'人头身份证正面',url:owner?.idCardFront||''},{label:'人头身份证反面',url:owner?.idCardBack||''},{label:'银行卡正面',url:owner?.bankCardPhoto||''},{label:'银行卡反面',url:owner?.bankCardBack||''}]}
-function openCreate(owner?:Owner){ editingId.value=null; const selectedOwner=owner||availableOwners.value[0]; const typeId=String(route.query.shopTypeId||'st1'); Object.assign(form,{id:'s'+Date.now(),code:'MY-NEW-'+String(Date.now()).slice(-4),name:'',region:'吉隆坡',companyId:currentUser.value?.companyId||selectedOwner?.companyId||visibleCompanies.value[0]?.id||'',ownerId:selectedOwner?.id||'',agentId:selectedOwner?.agentId||visibleAgents.value[0]?.id||'',shopTypeId:typeId,status:'operating' as const,openDate:new Date().toISOString().slice(0,10),closeDate:null,taskId:null,mode:'monthly' as SettlementMode,monthlyRent:state.shopTypes.find(type=>type.id===typeId)?.defaultRent||280,openingFee:0,openProof:'',closeProof:'',trafficCardNumber:'',trafficCardExpiryDate:null,createdAt:new Date().toISOString().slice(0,10)}); selectedTemplateId.value=visibleCompanySettlementTemplates.value.find(template=>template.status==='active')?.id||''; modalOpen.value=true }
-function openEdit(shop:Shop){ editingId.value=shop.id; const owner=ownerForShop(shop); Object.assign(form,JSON.parse(JSON.stringify(shop)),{openingFee:shop.openingFee||0,openProof:shop.openProof||owner?.shopOpenProof||'',closeProof:shop.closeProof||owner?.shopCloseProof||'',trafficCardNumber:shop.trafficCardNumber||'',trafficCardExpiryDate:shop.trafficCardExpiryDate||null}); selectedTemplateId.value=companyConfigFor(shop.id)?.templateId||visibleCompanySettlementTemplates.value.find(template=>template.status==='active')?.id||''; modalOpen.value=true }
+function openCreate(owner?:Owner){ editingId.value=null; const selectedOwner=owner||availableOwners.value[0]; const typeId=String(route.query.shopTypeId||'st1'); Object.assign(form,{id:'s'+Date.now(),code:'MY-NEW-'+String(Date.now()).slice(-4),name:'',region:'吉隆坡',companyId:currentUser.value?.companyId||selectedOwner?.companyId||visibleCompanies.value[0]?.id||'',ownerId:selectedOwner?.id||'',agentId:selectedOwner?.agentId||visibleAgents.value[0]?.id||'',shopTypeId:typeId,status:'operating' as const,openDate:new Date().toISOString().slice(0,10),closeDate:null,taskId:null,mode:'monthly' as SettlementMode,monthlyRent:state.shopTypes.find(type=>type.id===typeId)?.defaultRent||280,openingFee:0,openProof:'',closeProof:'',trafficCardNumber:'',trafficCardExpiryDate:null,protectionPeriodId:'',protectionPeriodName:'无保护期',protectionPeriodMonths:0,createdAt:new Date().toISOString().slice(0,10)}); selectedTemplateId.value=visibleCompanySettlementTemplates.value.find(template=>template.status==='active')?.id||''; modalOpen.value=true }
+function openEdit(shop:Shop){ editingId.value=shop.id; const owner=ownerForShop(shop); Object.assign(form,JSON.parse(JSON.stringify(shop)),{openingFee:shop.openingFee||0,openProof:shop.openProof||owner?.shopOpenProof||'',closeProof:shop.closeProof||owner?.shopCloseProof||'',trafficCardNumber:shop.trafficCardNumber||'',trafficCardExpiryDate:shop.trafficCardExpiryDate||null,protectionPeriodId:shop.protectionPeriodId||'',protectionPeriodName:shop.protectionPeriodName||'无保护期',protectionPeriodMonths:shop.protectionPeriodMonths||0}); selectedTemplateId.value=companyConfigFor(shop.id)?.templateId||visibleCompanySettlementTemplates.value.find(template=>template.status==='active')?.id||''; modalOpen.value=true }
 function handleCloseDateChange(){ form.status=statusAfterCloseDateChange(form.closeDate) }
+function selectProtectionPeriod(){ if(!selectedProtectionPeriod.value){form.protectionPeriodName='无保护期';form.protectionPeriodMonths=0;return};form.protectionPeriodName=selectedProtectionPeriod.value.name;form.protectionPeriodMonths=selectedProtectionPeriod.value.months }
 function openDetail(shop:Shop){ selected.value=shop; detailOpen.value=true }
 function submit(){ if(!form.code.trim()||!form.ownerId||!form.agentId)return; if(currentUser.value?.role==='company'&&!selectedTemplate.value){window.alert('请选择公司结算模式分类');return}; const result=saveShop({...form}); if(!result.ok){window.alert(result.reason);return}; if(currentUser.value?.role==='company'&&selectedTemplate.value){const old=companyConfigFor(form.id);const template=selectedTemplate.value;const configResult=saveCompanySettlementConfig({id:old?.id||'csc'+Date.now(),companyId:form.companyId,shopId:form.id,templateId:template.id,templateName:template.name,mode:template.mode,amount:template.amount,currency:template.currency,effectiveMonth:form.openDate.slice(0,7),status:template.status==='active'?'active':'disabled',remark:'开店时选择分类：'+template.name,updatedAt:'',updatedBy:''});if(!configResult.ok){window.alert(configResult.reason);return}}; modalOpen.value=false }
 function remove(shop:Shop){ if(window.confirm('确定删除店铺「'+shop.code+'」吗？涉及历史结算时正式环境应改为关店，不可物理删除。')) deleteShop(shop.id) }
@@ -79,7 +81,8 @@ function exportShopValue(shop:Shop,key:ShopExportFieldKey):string|number {
   if(key==='openProof')return shop.openProof||owner?.shopOpenProof||''
   if(key==='closeProof')return shop.closeProof||owner?.shopCloseProof||''
   if(key==='trafficCardNumber')return shop.trafficCardNumber||'未配置'
-  return shop.trafficCardExpiryDate||'未设置'
+  if(key==='trafficCardExpiryDate')return shop.trafficCardExpiryDate||'未设置'
+  return shop.protectionPeriodMonths ? (shop.protectionPeriodName||shop.protectionPeriodMonths+'个月保护期') : '0 保护期'
 }
 function clearDateFilter(){ dateFieldFilter.value='all'; dateFrom.value=''; dateTo.value='' }
 function openExport(){ exportOpen.value=true }
@@ -116,7 +119,7 @@ function exportShops(){
     </section>
     <div class="table-wrap">
       <table class="data-table">
-        <thead><tr><th>店铺</th><th>公司 / 代理</th><th>人头</th><th>店铺类型</th><th>{{ currentUser?.role==='company'?'公司结算模式':'结算模式' }}</th><th>{{ currentUser?.role==='company'?'结算金额':'月租' }}</th><th>开店日期</th><th>封店日期</th><th>流量卡 / 续费日</th><th>状态</th><th style="width:130px">操作</th></tr></thead>
+        <thead><tr><th>店铺</th><th>公司 / 代理</th><th>人头</th><th>店铺类型</th><th>{{ currentUser?.role==='company'?'公司结算模式':'结算模式' }}</th><th>{{ currentUser?.role==='company'?'结算金额':'月租' }}</th><th>开店日期</th><th>封店日期</th><th>流量卡 / 续费日</th><th>保护期</th><th>状态</th><th style="width:130px">操作</th></tr></thead>
         <tbody><tr v-for="shop in filtered" :key="shop.id">
           <td><div class="primary-cell">{{ shop.code }}</div><div class="secondary-line">{{ shop.name }} · {{ shop.region }}</div></td>
           <td><div>{{ visibleCompanies.find(c=>c.id===shop.companyId)?.name }}</div><div class="secondary-line">{{ agentName(shop.agentId) }}</div></td>
@@ -126,9 +129,10 @@ function exportShops(){
           <td>{{ shop.openDate || '未填写' }}</td>
           <td>{{ shop.closeDate || '未封店' }}</td>
           <td>{{ shop.trafficCardNumber || '未配置' }}<div class="secondary-line">{{ shop.trafficCardExpiryDate || '未设置续费日' }}</div></td>
+          <td>{{ shop.protectionPeriodMonths ? (shop.protectionPeriodName || shop.protectionPeriodMonths+'个月保护期') : '0 保护期' }}<div class="secondary-line">{{ shop.protectionPeriodMonths || 0 }} 个月</div></td>
           <td><span class="badge" :class="shop.status==='operating'?'success':shop.status==='closed'?'neutral':'warning'">{{ statusText[shop.status] }}</span></td>
           <td><div class="row-actions"><button class="row-action" @click="openDetail(shop)"><Icon name="eye" :size="15"/></button><button v-if="can('manageShops')" class="row-action" @click="openEdit(shop)"><Icon name="edit" :size="15"/></button><button v-if="can('manageShops') && shop.status!=='closed'" class="row-action danger" title="关店" @click="setShopStatus(shop.id,'closed')"><Icon name="x" :size="15"/></button><button v-if="can('manageShops') && shop.status==='closed'" class="row-action" title="重新启用" @click="setShopStatus(shop.id,'operating')"><Icon name="check" :size="15"/></button></div></td>
-        </tr><tr v-if="!filtered.length"><td colspan="11"><div class="table-empty"><Icon name="store" :size="30"/><div>没有匹配的店铺</div></div></td></tr></tbody>
+        </tr><tr v-if="!filtered.length"><td colspan="12"><div class="table-empty"><Icon name="store" :size="30"/><div>没有匹配的店铺</div></div></td></tr></tbody>
       </table>
     </div>
 
@@ -145,7 +149,7 @@ function exportShops(){
         <template v-if="currentUser?.role!=='company'"><div class="field"><label>代理分配模式</label><select v-model="form.mode" class="select"><option value="monthly">按月结算</option><option value="head_fee">砍头（仅首月）</option></select></div><div class="field"><label>代理分配月租</label><input v-model.number="form.monthlyRent" class="input" type="number" min="0"/></div></template><div v-else class="field full"><label>公司结算模式分类 <b>*</b></label><select v-model="selectedTemplateId" class="select"><option v-for="template in visibleCompanySettlementTemplates.filter(t=>t.status==='active')" :key="template.id" :value="template.id">{{ template.name }} · {{ template.mode==='one_time'?'一次性':'按月' }} {{ money(template.amount,template.currency) }}</option></select><span v-if="selectedTemplate" class="hint">开店后按该分类快照：{{ selectedTemplate.mode==='one_time'?'一次性' :'按月' }} {{ money(selectedTemplate.amount,selectedTemplate.currency) }}。</span></div>
         <div class="field"><label>开业日期</label><input v-model="form.openDate" class="input" type="date"/></div>
         <div v-if="editingId" class="field"><label>关店时间</label><input v-model="form.closeDate" class="input" type="date" @change="handleCloseDateChange"/><span class="hint">选择关店时间后，状态自动改为“已关店”。</span></div>
-        <div class="field"><label>状态</label><div v-if="!editingId" class="readonly-field">开新店</div><select v-else v-model="form.status" class="select"><option value="operating">经营中</option><option value="paused">暂停</option><option value="closed">已关店</option><option value="preparing">筹备中</option></select></div><div class="field"><label>开店费</label><input v-model.number="form.openingFee" class="input" type="number" min="0" step="0.01"/><span class="hint">新开店铺时记录的扣费金额。</span></div><div class="field"><label>流量卡号码</label><input v-model="form.trafficCardNumber" class="input" placeholder="例如：MYTC-8801001"/><span class="hint">每家店铺单独绑定 1 张流量卡。</span></div><div class="field"><label>流量卡到期续费日</label><input v-model="form.trafficCardExpiryDate" class="input" type="date"/><span class="hint">记录本月到期日期，便于定期充值。</span></div>
+        <div class="field"><label>状态</label><div v-if="!editingId" class="readonly-field">开新店</div><select v-else v-model="form.status" class="select"><option value="operating">经营中</option><option value="paused">暂停</option><option value="closed">已关店</option><option value="preparing">筹备中</option></select></div><div class="field"><label>开店费</label><input v-model.number="form.openingFee" class="input" type="number" min="0" step="0.01"/><span class="hint">新开店铺时记录的扣费金额。</span></div><div class="field"><label>流量卡号码</label><input v-model="form.trafficCardNumber" class="input" placeholder="例如：MYTC-8801001"/><span class="hint">每家店铺单独绑定 1 张流量卡。</span></div><div class="field"><label>流量卡到期续费日</label><input v-model="form.trafficCardExpiryDate" class="input" type="date"/><span class="hint">记录本月到期日期，便于定期充值。</span></div><div class="field"><label>保护期</label><select v-model="form.protectionPeriodId" class="select" @change="selectProtectionPeriod"><option value="">0 保护期</option><option v-for="period in visibleProtectionPeriods.filter(item=>item.status==='active')" :key="period.id" :value="period.id">{{ period.name }}（{{ period.months }} 个月）</option></select><span class="hint">默认 0 保护期，可选择 1、3、6 个月等类型。</span></div>
       </div>
       <div class="media-grid" style="margin-top:14px">
         <MediaField v-model="form.openProof" label="开店成功截图" upload-only hint="选填；上传新店开店成功的截图。" @preview="preview=$event"/>
@@ -168,6 +172,7 @@ function exportShops(){
           <div class="detail-item"><label>开店费</label><strong>{{ money(selected.openingFee || 0, companyConfigFor(selected.id)?.currency) }}</strong></div>
           <div class="detail-item"><label>流量卡号码</label><strong>{{ selected.trafficCardNumber || '未配置' }}</strong></div>
           <div class="detail-item"><label>流量卡到期续费日</label><strong>{{ selected.trafficCardExpiryDate || '未设置' }}</strong></div>
+          <div class="detail-item"><label>保护期</label><strong>{{ selected.protectionPeriodMonths ? (selected.protectionPeriodName || selected.protectionPeriodMonths+'个月保护期') : '0 保护期' }}</strong></div>
           <div class="detail-item"><label>{{ currentUser?.role==='company'?'公司结算模式':'代理分配模式' }}</label><strong>{{ modeLabelFor(selected) }} · {{ modeAmountFor(selected)?money(modeAmountFor(selected),companyConfigFor(selected.id)?.currency):'未设置金额' }}</strong></div>
           <div class="detail-item full"><label>备注说明</label><strong>{{ ownerForShop(selected)?.remark || '暂无备注' }}</strong></div>
         </div>
