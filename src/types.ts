@@ -117,6 +117,9 @@ export interface Shop {
   taskId: string | null
   mode: SettlementMode
   monthlyRent: number
+  openingFee?: number
+  openProof?: string
+  closeProof?: string
   createdAt: string
 }
 

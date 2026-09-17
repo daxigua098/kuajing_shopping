@@ -429,6 +429,7 @@ export function saveShop(shop: Shop) {
     }
     shop.companyId = actor.companyId || shop.companyId
   }
+  if (shop.closeDate) shop.status = 'closed'
   if (index >= 0) state.shops[index] = clone(shop)
   else state.shops.unshift(clone(shop))
   addAudit(index >= 0 ? '编辑店铺' : '新增店铺', shop.code, shopName(shop.id))
