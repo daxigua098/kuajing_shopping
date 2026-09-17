@@ -132,6 +132,10 @@ test('traffic card management is wired into navigation and shops', async () => {
   assert.ok(shops.includes('流量卡号码'))
   assert.ok(view.includes('<th>店铺编号</th><th>店铺名称</th><th>人头</th>'))
   assert.ok(view.includes('<td><div class="primary-cell">{{ shop.code }}</div></td>'))
+  assert.ok(view.includes('当前流量卡号码'))
+  assert.ok(view.includes('当前到期状态'))
+  assert.ok(view.includes('当前每月续费日'))
+  assert.ok(view.includes('店铺类型'))
 })
 
 test('company review can open complete owner audit details', async () => {

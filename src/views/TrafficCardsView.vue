@@ -2,7 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import Icon from '@/components/Icon.vue'
 import Modal from '@/components/Modal.vue'
-import { agentName, can, companyName, currentUser, ownerName, saveTrafficCard, visibleCompanies, visibleShops } from '@/store'
+import { agentName, can, companyName, currentUser, ownerName, saveTrafficCard, shopTypeName, visibleCompanies, visibleShops } from '@/store'
 import type { Shop } from '@/types'
 import { downloadRows } from '@/utils/export'
 import { daysUntilTrafficExpiry, trafficCardStatus, trafficRenewalText, type TrafficCardStatus } from '@/utils/trafficCard'
@@ -90,13 +90,28 @@ function exportCards() {
       <tr v-if="!filtered.length"><td colspan="9"><div class="table-empty"><Icon name="card" :size="30"/><div>没有匹配的流量卡</div></div></td></tr>
     </tbody></table></div>
 
-    <Modal :open="modalOpen" title="编辑店铺流量卡" width="620px" @close="modalOpen=false">
-      <template #subtitle><p>{{ editingShop?.name }} · {{ editingShop?.code }}</p></template>
-      <div class="form-grid">
-        <div class="field"><label>流量卡号码</label><input v-model="form.trafficCardNumber" class="input" placeholder="例如：MYTC-8801001"/><span class="hint">每个卡号只能绑定一家店铺。</span></div>
-        <div class="field"><label>到期续费日期</label><input v-model="form.trafficCardExpiryDate" class="input" type="date"/><span class="hint">系统按月显示续费日，续费后更新到下一期。</span></div>
+    <Modal :open="modalOpen" title="编辑店铺流量卡" width="760px" @close="modalOpen=false">
+      <template #subtitle><p v-if="editingShop">完整查看店铺、人头和流量卡信息后再修改卡片数据。</p></template>
+      <div v-if="editingShop">
+        <div class="detail-list">
+          <div class="detail-item"><label>店铺编号</label><strong>{{ editingShop.code }}</strong></div>
+          <div class="detail-item"><label>店铺名称</label><strong>{{ editingShop.name }}</strong></div>
+          <div class="detail-item"><label>人头姓名</label><strong>{{ ownerName(editingShop.ownerId) }}</strong></div>
+          <div class="detail-item"><label>店铺类型</label><strong>{{ shopTypeName(editingShop.shopTypeId) }}</strong></div>
+          <div class="detail-item"><label>公司</label><strong>{{ companyName(editingShop.companyId) }}</strong></div>
+          <div class="detail-item"><label>代理</label><strong>{{ agentName(editingShop.agentId) }}</strong></div>
+          <div class="detail-item"><label>当前流量卡号码</label><strong>{{ editingShop.trafficCardNumber || '未配置' }}</strong></div>
+          <div class="detail-item"><label>当前每月续费日</label><strong>{{ trafficRenewalText(editingShop.trafficCardExpiryDate) }}</strong></div>
+          <div class="detail-item"><label>当前到期日期</label><strong>{{ editingShop.trafficCardExpiryDate || '未设置' }}</strong></div>
+          <div class="detail-item"><label>当前到期状态</label><strong>{{ statusMeta[trafficCardStatus(editingShop)].label }} · {{ dueText(editingShop) }}</strong></div>
+        </div>
+        <div class="card-head" style="margin:20px 0 12px"><div><h3>修改流量卡数据</h3><p>卡号只能绑定一家店铺，到期日期用于计算每月充值提醒。</p></div></div>
+        <div class="form-grid">
+          <div class="field"><label>流量卡号码</label><input v-model="form.trafficCardNumber" class="input" placeholder="例如：MYTC-8801001"/><span class="hint">每个卡号只能绑定一家店铺。</span></div>
+          <div class="field"><label>到期续费日期</label><input v-model="form.trafficCardExpiryDate" class="input" type="date"/><span class="hint">系统按月显示续费日，续费后更新到下一期。</span></div>
+        </div>
+        <div class="callout warning" style="margin-top:14px"><Icon name="alert" :size="17"/><div><strong>定期充值提醒</strong><p>建议在到期日前完成充值，避免店铺网络中断。</p></div></div>
       </div>
-      <div class="callout warning" style="margin-top:14px"><Icon name="alert" :size="17"/><div><strong>定期充值提醒</strong><p>建议在到期日前完成充值，避免店铺网络中断。</p></div></div>
       <template #footer><button class="btn secondary" @click="modalOpen=false">取消</button><button class="btn primary" @click="submit"><Icon name="check" :size="15"/>保存流量卡</button></template>
     </Modal>
   </div>
