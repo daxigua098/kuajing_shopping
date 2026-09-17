@@ -4,7 +4,7 @@ export type ShopStatus = 'operating' | 'paused' | 'closed' | 'preparing'
 export type SettlementMode = 'monthly' | 'head_fee'
 export type CompanySettlementMode = 'one_time' | 'monthly'
 export type ThemeId = 1 | 2 | 3 | 4
-export type Language = 'zh' | 'en' | 'ms'
+export type Language = 'zh' | 'en' | 'ms' | 'th' | 'vi'
 
 export interface UserAccount {
   id: string

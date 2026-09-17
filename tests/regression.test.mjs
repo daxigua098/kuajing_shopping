@@ -230,4 +230,8 @@ test('language selection updates rendered interface text', async () => {
   assert.ok(i18n.includes("'新增店铺': ['Add Shop'"))
   assert.ok(i18n.includes("translateAttributes"))
   assert.ok(settings.includes('applyLanguage(language.id)'))
+  assert.ok(settings.includes("id:'th',name:'ไทย',tag:'TH'"))
+  assert.ok(settings.includes("id:'vi',name:'Tiếng Việt',tag:'VI'"))
+  assert.ok(i18n.includes("'经营工作台': 'แดชบอร์ด'"))
+  assert.ok(i18n.includes("'经营工作台': 'Bảng điều khiển'"))
 })

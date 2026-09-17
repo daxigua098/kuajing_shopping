@@ -11,7 +11,7 @@ const themes:{id:ThemeId;name:string;desc:string;colors:string[]}[]=[
   {id:3,name:'瑞士财务网格',desc:'强秩序、高对比，最适合月末核算与对账。',colors:['#111111','#2255ff','#d8ff36']},
   {id:4,name:'代理关系图谱',desc:'强调代理树、团队与收益增长。',colors:['#251b3b','#7047ae','#d7b967']},
 ]
-const languages:{id:Language;name:string;tag:string}[]=[{id:'zh',name:'简体中文',tag:'ZH'},{id:'en',name:'English',tag:'EN'},{id:'ms',name:'Bahasa Melayu',tag:'MS'}]
+const languages:{id:Language;name:string;tag:string}[]=[{id:'zh',name:'简体中文',tag:'ZH'},{id:'en',name:'English',tag:'EN'},{id:'ms',name:'Bahasa Melayu',tag:'MS'},{id:'th',name:'ไทย',tag:'TH'},{id:'vi',name:'Tiếng Việt',tag:'VI'}]
 const storageSize=computed(()=>Math.round(JSON.stringify(state).length/1024))
 function applyTheme(id:ThemeId){setTheme(id);document.documentElement.dataset.theme=String(id)}
 function applyLanguage(id:Language){setLanguage(id)}
