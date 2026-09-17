@@ -41,4 +41,6 @@ test('company shop form separates new-shop and close-shop fields', async () => {
   assert.ok(source.includes('v-model.number="form.openingFee"'))
   assert.ok(source.includes('v-model="form.openProof"'))
   assert.ok(source.includes('v-model="form.closeProof"'))
+  assert.ok(source.includes('<th>开店日期</th><th>封店日期</th>'))
+  assert.ok(source.includes("{{ shop.closeDate || '未封店' }}"))
 })

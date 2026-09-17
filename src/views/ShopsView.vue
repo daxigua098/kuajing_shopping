@@ -51,7 +51,7 @@ watch(() => [route.query.create, route.query.ownerId, route.query.shopTypeId], (
   const owner = visibleOwners.value.find(item => item.id === String(route.query.ownerId || ''))
   if (owner) openCreate(owner)
 }, { immediate: true })
-function exportShops(){ downloadRows('店铺档案-'+new Date().toISOString().slice(0,10),['店铺ID','编号','名称','公司','代理','人头','IC卡号','银行卡号','类型','模式','月租','开店费','开店截图','关店/封店截图','状态','开业日期','关店日期'],filtered.value.map(shop=>[shop.id,shop.code,shop.name,visibleCompanies.value.find(c=>c.id===shop.companyId)?.name || '',agentName(shop.agentId),ownerName(shop.ownerId),ownerForShop(shop)?.icNumber||'',ownerForShop(shop)?.bankAccount||'',typeName(shop.shopTypeId),modeLabelFor(shop),modeAmountFor(shop),shop.openingFee||0,(shop.openProof||ownerForShop(shop)?.shopOpenProof)?'已上传':'未上传',(shop.closeProof||ownerForShop(shop)?.shopCloseProof)?'已上传':'未上传',statusText[shop.status],shop.openDate,shop.closeDate||'']),'csv') }
+function exportShops(){ downloadRows('店铺档案-'+new Date().toISOString().slice(0,10),['店铺ID','编号','名称','公司','代理','人头','IC卡号','银行卡号','类型','模式','月租','开店费','开店截图','关店/封店截图','状态','开店日期','封店日期'],filtered.value.map(shop=>[shop.id,shop.code,shop.name,visibleCompanies.value.find(c=>c.id===shop.companyId)?.name || '',agentName(shop.agentId),ownerName(shop.ownerId),ownerForShop(shop)?.icNumber||'',ownerForShop(shop)?.bankAccount||'',typeName(shop.shopTypeId),modeLabelFor(shop),modeAmountFor(shop),shop.openingFee||0,(shop.openProof||ownerForShop(shop)?.shopOpenProof)?'已上传':'未上传',(shop.closeProof||ownerForShop(shop)?.shopCloseProof)?'已上传':'未上传',statusText[shop.status],shop.openDate,shop.closeDate||'']),'csv') }
 </script>
 <template>
   <div>
@@ -72,16 +72,18 @@ function exportShops(){ downloadRows('店铺档案-'+new Date().toISOString().sl
     </section>
     <div class="table-wrap">
       <table class="data-table">
-        <thead><tr><th>店铺</th><th>公司 / 代理</th><th>人头</th><th>店铺类型</th><th>{{ currentUser?.role==='company'?'公司结算模式':'结算模式' }}</th><th>{{ currentUser?.role==='company'?'结算金额':'月租' }}</th><th>状态</th><th style="width:130px">操作</th></tr></thead>
+        <thead><tr><th>店铺</th><th>公司 / 代理</th><th>人头</th><th>店铺类型</th><th>{{ currentUser?.role==='company'?'公司结算模式':'结算模式' }}</th><th>{{ currentUser?.role==='company'?'结算金额':'月租' }}</th><th>开店日期</th><th>封店日期</th><th>状态</th><th style="width:130px">操作</th></tr></thead>
         <tbody><tr v-for="shop in filtered" :key="shop.id">
           <td><div class="primary-cell">{{ shop.code }}</div><div class="secondary-line">{{ shop.name }} · {{ shop.region }}</div></td>
           <td><div>{{ visibleCompanies.find(c=>c.id===shop.companyId)?.name }}</div><div class="secondary-line">{{ agentName(shop.agentId) }}</div></td>
           <td>{{ ownerName(shop.ownerId) }}</td><td>{{ typeName(shop.shopTypeId) }}</td>
           <td><span class="mode-chip" :class="{head:(currentUser?.role==='company') ? companyConfigFor(shop.id)?.mode==='one_time' : shop.mode==='head_fee'}">{{ modeLabelFor(shop) }}</span></td>
           <td class="amount">{{ modeAmountFor(shop)?money(modeAmountFor(shop),companyConfigFor(shop.id)?.currency):'—' }}</td>
+          <td>{{ shop.openDate || '未填写' }}</td>
+          <td>{{ shop.closeDate || '未封店' }}</td>
           <td><span class="badge" :class="shop.status==='operating'?'success':shop.status==='closed'?'neutral':'warning'">{{ statusText[shop.status] }}</span></td>
           <td><div class="row-actions"><button class="row-action" @click="openDetail(shop)"><Icon name="eye" :size="15"/></button><button v-if="can('manageShops')" class="row-action" @click="openEdit(shop)"><Icon name="edit" :size="15"/></button><button v-if="can('manageShops') && shop.status!=='closed'" class="row-action danger" title="关店" @click="setShopStatus(shop.id,'closed')"><Icon name="x" :size="15"/></button><button v-if="can('manageShops') && shop.status==='closed'" class="row-action" title="重新启用" @click="setShopStatus(shop.id,'operating')"><Icon name="check" :size="15"/></button></div></td>
-        </tr><tr v-if="!filtered.length"><td colspan="8"><div class="table-empty"><Icon name="store" :size="30"/><div>没有匹配的店铺</div></div></td></tr></tbody>
+        </tr><tr v-if="!filtered.length"><td colspan="10"><div class="table-empty"><Icon name="store" :size="30"/><div>没有匹配的店铺</div></div></td></tr></tbody>
       </table>
     </div>
 
@@ -115,8 +117,8 @@ function exportShops(){ downloadRows('店铺档案-'+new Date().toISOString().sl
           <div class="detail-item"><label>IC 卡号</label><strong>{{ ownerForShop(selected)?.icNumber || '未填写' }}</strong></div>
           <div class="detail-item"><label>银行卡号</label><strong>{{ ownerForShop(selected) ? (canViewFullSensitive ? ownerForShop(selected)?.bankAccount : maskAccount(ownerForShop(selected)?.bankAccount || '')) : '未填写' }}</strong></div>
           <div class="detail-item"><label>开户银行 / 开户人</label><strong>{{ ownerForShop(selected)?.bankName || '未填写' }} · {{ ownerForShop(selected)?.bankHolder || '' }}</strong></div>
-          <div class="detail-item"><label>开业日期</label><strong>{{ selected.openDate || '未填写' }}</strong></div>
-          <div class="detail-item"><label>关店日期</label><strong>{{ selected.closeDate || '未关店' }}</strong></div>
+          <div class="detail-item"><label>开店日期</label><strong>{{ selected.openDate || '未填写' }}</strong></div>
+          <div class="detail-item"><label>封店日期</label><strong>{{ selected.closeDate || '未封店' }}</strong></div>
           <div class="detail-item"><label>公司 / 代理</label><strong>{{ companyLabel(selected.companyId) }} · {{ agentName(selected.agentId) }}</strong></div>
           <div class="detail-item"><label>开店费</label><strong>{{ money(selected.openingFee || 0, companyConfigFor(selected.id)?.currency) }}</strong></div>
           <div class="detail-item"><label>{{ currentUser?.role==='company'?'公司结算模式':'代理分配模式' }}</label><strong>{{ modeLabelFor(selected) }} · {{ modeAmountFor(selected)?money(modeAmountFor(selected),companyConfigFor(selected.id)?.currency):'未设置金额' }}</strong></div>
