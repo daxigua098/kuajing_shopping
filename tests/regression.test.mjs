@@ -277,6 +277,8 @@ test('account management enforces scope and first-login security', async () => {
   assert.ok(accounts.includes('编辑账号'))
   assert.ok(accounts.includes('当前密码'))
   assert.ok(accounts.includes('修改并保存后，新密码立即生效'))
+  assert.ok(accounts.includes(':disabled="!isPlatform" @change="syncRole"'))
+  assert.ok(accounts.includes('<option value="active">启用</option><option value="disabled">停用</option>'))
   assert.ok(!accounts.includes('openReset'))
   assert.ok(partner.includes('选择合作公司'))
   assert.ok(partner.includes('历史合作公司'))
