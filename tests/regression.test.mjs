@@ -192,10 +192,11 @@ test('protection period management and shop selection are wired into the UI', as
   const shell = await readFile(new URL('../src/components/AppShell.vue', import.meta.url), 'utf8')
 
   assert.ok(view.includes('新增保护期类型'))
-  assert.ok(shops.includes('0 保护期'))
+  assert.ok(shops.includes('无保护期'))
   assert.ok(shops.includes('protectionPeriodMonths'))
   assert.ok(settlement.includes('showProtectionPeriod'))
   assert.ok(settlement.includes('店铺保护期'))
+  assert.ok(settlement.includes('showProtectionPeriod.value?isProtectedDetail(detail):!isProtectedDetail(detail)'))
   assert.ok(settlement.includes('<th>店铺保护期</th>'))
   assert.ok(settlement.includes("'店铺保护期'"))
   assert.ok(router.includes("name: 'protection-periods'"))
